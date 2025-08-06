@@ -1,0 +1,13 @@
+{
+  "name": "ntcli-examples",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Examples for using ntcli with various AI frameworks",
+  "dependencies": {
+    "@langchain/core": "^0.3.66",
+    "@langchain/openai": "^0.6.3"
+  },
+  "scripts": {
+    "langchain": "node langchain-example.js"
+  }
+}
