@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { RegistryCommandOptions, RegistryServer, RegistryServerFilters } from '../../types/index.js';
 import { NimbleBrainApiClient, ApiError } from '../../lib/api/client.js';
+import { TokenManager } from '../../lib/auth/token-manager.js';
 
 /**
  * List servers from the registry
@@ -12,8 +13,18 @@ export async function handleRegistryList(
   const spinner = ora('📦 Fetching registry servers...').start();
   
   try {
-    // Initialize API client (registry is public, no auth needed)
+    // Initialize API client with authentication
+    const tokenManager = new TokenManager();
     const apiClient = new NimbleBrainApiClient();
+    
+    // Check authentication and set JWT token
+    const isAuthenticated = await tokenManager.isAuthenticated();
+    if (isAuthenticated) {
+      const clerkIdToken = await tokenManager.getValidClerkIdToken();
+      if (clerkIdToken) {
+        apiClient.setClerkJwtToken(clerkIdToken);
+      }
+    }
     
     spinner.text = '🔍 Searching registry...';
     

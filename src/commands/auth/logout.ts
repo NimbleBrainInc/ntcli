@@ -23,6 +23,12 @@ export async function handleLogout(): Promise<void> {
     // Clear stored tokens and user info
     await tokenManager.clearTokens();
     
+    // Verify tokens were cleared
+    if (process.env.NTCLI_DEBUG) {
+      const stillAuthenticated = await tokenManager.isAuthenticated();
+      console.log(`[DEBUG] Still authenticated after logout: ${stillAuthenticated}`);
+    }
+    
     spinner.succeed('✅ Logged out successfully');
     
     if (authState.user) {

@@ -13,6 +13,7 @@ export interface LocalWorkspace {
   token_type: string;
   expires_at: number;
   scope: string[];
+  jti?: string;
   isActive?: boolean;
 }
 
@@ -94,7 +95,8 @@ export class WorkspaceStorage {
       access_token: response.access_token,
       token_type: response.token_type,
       expires_at: expiresAt,
-      scope: response.scope
+      scope: response.scope,
+      ...(response.jti && { jti: response.jti })
     };
 
     config.workspaces[response.workspace_id] = workspace;
@@ -199,7 +201,7 @@ export class WorkspaceStorage {
   /**
    * Update workspace access token (if retrieved later)
    */
-  updateWorkspaceToken(workspaceId: string, accessToken: string, tokenType: string, expiresIn: number, scope: string[]): boolean {
+  updateWorkspaceToken(workspaceId: string, accessToken: string, tokenType: string, expiresIn: number, scope: string[], jti?: string): boolean {
     const config = this.loadConfig();
     
     if (!config.workspaces[workspaceId]) {
@@ -212,6 +214,9 @@ export class WorkspaceStorage {
     config.workspaces[workspaceId].token_type = tokenType;
     config.workspaces[workspaceId].expires_at = expiresAt;
     config.workspaces[workspaceId].scope = scope;
+    if (jti) {
+      config.workspaces[workspaceId].jti = jti;
+    }
     this.saveConfig(config);
     return true;
   }

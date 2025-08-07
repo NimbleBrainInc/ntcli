@@ -87,7 +87,7 @@ export async function handleServerClaudeConfig(
     
     // Construct MCP endpoint URL
     const workspaceUuid = extractWorkspaceUuid(finalWorkspaceId);
-    const mcpEndpoint = `${apiClient.getBaseUrl()}/v1/workspaces/${workspaceUuid}/servers/${serverId}/mcp`;
+    const mcpEndpoint = `${apiClient.getMcpBaseUrl()}/${workspaceUuid}/${serverId}/mcp`;
     
     // Build args array - use npx with @nimbletools/mcp-http-bridge package
     const args = [
@@ -159,7 +159,7 @@ export async function handleServerClaudeConfig(
       }
       
       if (error.isAuthError()) {
-        console.log(chalk.yellow('   💡 Try running `ntcli auth login` to refresh your authentication'));
+        console.log(chalk.yellow('   💡 Try running `ntcli token refresh` to refresh your workspace token'));
       } else if (error.isNotFoundError()) {
         console.log(chalk.yellow(`   💡 Server '${serverId}' not found in this workspace`));
         console.log(chalk.cyan('   💡 Use `ntcli server list` to see deployed servers'));

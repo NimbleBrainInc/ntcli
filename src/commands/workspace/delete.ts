@@ -79,8 +79,15 @@ export async function handleWorkspaceDelete(
     const apiClient = new NimbleBrainApiClient();
     apiClient.setClerkJwtToken(clerkIdToken);
     
+    if (process.env.NTCLI_DEBUG) {
+      console.error(`[DEBUG] Deleting workspace ${workspaceId} from API...`);
+    }
+    
     try {
-      await apiClient.deleteWorkspace(workspaceId);
+      const result = await apiClient.deleteWorkspace(workspaceId);
+      if (process.env.NTCLI_DEBUG) {
+        console.error(`[DEBUG] Delete API response:`, JSON.stringify(result, null, 2));
+      }
     } catch (apiError) {
       if (apiError instanceof ApiError && apiError.statusCode === 404) {
         // Workspace doesn't exist on server, but we can still remove it locally

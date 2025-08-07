@@ -22,17 +22,20 @@ interface HealthOptions {
 export async function handleHealthCheck(options: HealthOptions = {}): Promise<void> {
   const spinner = ora('🏥 Checking API health...').start();
   
+  // Initialize API client (no auth needed for health check)
+  const apiClient = new NimbleBrainApiClient();
+  
   try {
-    // Initialize API client (no auth needed for health check)
-    const apiClient = new NimbleBrainApiClient();
     
-    // Make request to /health endpoint
-    const healthUrl = `${apiClient.getBaseUrl()}/health`;
+    // Make request to management API /health endpoint
+    const healthUrl = `${apiClient.getManagementBaseUrl()}/health`;
     
-    if (options.debug || options.verbose) {
+    if (options.debug || options.verbose || process.env.NTCLI_DEBUG) {
       spinner.stop();
       console.log(chalk.gray(`[DEBUG] Making request to: ${healthUrl}`));
-      spinner.start();
+      console.log(chalk.gray(`[DEBUG] Management API: ${apiClient.getManagementBaseUrl()}`));
+      console.log(chalk.gray(`[DEBUG] MCP API: ${apiClient.getMcpBaseUrl()}`));
+      spinner.start('🏥 Making health check request...');
     }
     
     const startTime = Date.now();
@@ -75,7 +78,8 @@ export async function handleHealthCheck(options: HealthOptions = {}): Promise<vo
     
     if (options.verbose || options.debug) {
       console.log(`${chalk.gray('Response Time:')} ${chalk.cyan(responseTime + 'ms')}`);
-      console.log(`${chalk.gray('API Base URL:')} ${chalk.gray(apiClient.getBaseUrl())}`);
+      console.log(`${chalk.gray('Management API:')} ${chalk.gray(apiClient.getManagementBaseUrl())}`);
+      console.log(`${chalk.gray('MCP API:')} ${chalk.gray(apiClient.getMcpBaseUrl())}`);
     }
     
     if (options.debug) {
@@ -87,11 +91,20 @@ export async function handleHealthCheck(options: HealthOptions = {}): Promise<vo
   } catch (error) {
     spinner.fail('❌ Health check failed');
     
+    if (options.debug || options.verbose || process.env.NTCLI_DEBUG) {
+      console.log(chalk.gray(`[DEBUG] Failed URL: ${apiClient.getManagementBaseUrl()}/health`));
+      console.log(chalk.gray(`[DEBUG] Management API: ${apiClient.getManagementBaseUrl()}`));
+      console.log(chalk.gray(`[DEBUG] MCP API: ${apiClient.getMcpBaseUrl()}`));
+    }
+    
     if (error instanceof Error) {
       console.error(chalk.red(`   ${error.message}`));
       
       if (error.message.includes('fetch')) {
         console.log(chalk.yellow('   💡 Check your internet connection and API URL'));
+        if (!options.debug && !options.verbose) {
+          console.log(chalk.gray(`   💡 Use --debug to see the URL being accessed`));
+        }
       } else if (error.message.includes('HTTP 5')) {
         console.log(chalk.yellow('   💡 The API server may be experiencing issues'));
       } else if (error.message.includes('HTTP 4')) {

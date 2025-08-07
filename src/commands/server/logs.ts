@@ -119,7 +119,7 @@ export async function handleServerLogs(
       console.error(chalk.red(`   ${userMessage}`));
       
       if (error.isAuthError()) {
-        console.log(chalk.yellow('   💡 Try running `ntcli auth login` to refresh your authentication'));
+        console.log(chalk.yellow('   💡 Try running `ntcli token refresh` to refresh your workspace token'));
       } else if (error.isNotFoundError()) {
         console.log(chalk.yellow(`   💡 Server '${serverId}' not found in this workspace`));
         console.log(chalk.cyan('   💡 Use `ntcli server list` to see deployed servers'));

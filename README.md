@@ -1,4 +1,4 @@
-# ntcli
+# NimbleTools CLI (ntcli)
 
 [![npm version](https://badge.fury.io/js/%40nimbletools%2Fntcli.svg)](https://badge.fury.io/js/%40nimbletools%2Fntcli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -73,6 +73,8 @@ ntcli workspace list                   # List all workspaces
 ntcli workspace switch <name>          # Switch active workspace
 ntcli workspace delete <name>          # Delete workspace
 ntcli workspace clear                  # Clear active workspace
+ntcli workspace sync                   # Sync local storage with server
+ntcli workspace debug                  # Debug workspace storage files
 ```
 
 ### Server Management
@@ -105,8 +107,10 @@ ntcli server claude-config <server-id> # Generate Claude Desktop config
 ### Token Management
 
 ```bash
-ntcli token refresh                    # Refresh workspace token
-ntcli token refresh --no-expiry        # Create non-expiring token
+ntcli token refresh                    # Refresh workspace token (1 year expiry)
+ntcli token create                     # Create new workspace token  
+ntcli token list                       # List active workspace tokens
+ntcli token revoke <jti>               # Revoke specific token by JTI
 ntcli token show                       # Show token information
 ```
 
@@ -134,7 +138,7 @@ ntcli server claude-config nationalparks-mcp
       "args": [
         "@nimbletools/mcp-http-bridge",
         "--endpoint",
-        "https://mcp.nimbletools.ai/v1/workspaces/{uuid}/servers/nationalparks-mcp/mcp",
+        "https://mcp.nimbletools.ai/{uuid}/nationalparks-mcp/mcp",
         "--token",
         "your-workspace-token"
       ]
@@ -157,7 +161,7 @@ const searchParks = new DynamicTool({
   description: "Search for national parks",
   func: async (query) => {
     const response = await fetch(
-      `https://mcp.nimbletools.ai/v1/workspaces/${workspaceId}/servers/nationalparks-mcp/mcp`,
+      `https://mcp.nimbletools.ai/${workspaceId}/nationalparks-mcp/mcp`,
       {
         method: "POST",
         headers: {
@@ -186,12 +190,17 @@ const tools = [searchParks];
 
 ### Environment Variables
 
-| Variable                | Description                | Default                      |
-| ----------------------- | -------------------------- | ---------------------------- |
-| `CLERK_OAUTH_CLIENT_ID` | Clerk OAuth Client ID      | Required                     |
-| `CLERK_DOMAIN`          | Clerk domain               | Required                     |
-| `NTCLI_API_URL`         | API base URL               | `https://mcp.nimbletools.ai` |
-| `NTCLI_DEFAULT_PORT`    | OAuth callback server port | `41247`                      |
+| Variable                     | Description                | Default                        |
+| ---------------------------- | -------------------------- | ------------------------------ |
+| `CLERK_OAUTH_CLIENT_ID`      | Clerk OAuth Client ID      | Required                       |
+| `CLERK_DOMAIN`               | Clerk domain               | Required                       |
+| `NTCLI_MANAGEMENT_API_URL`   | Management API base URL    | `https://api.nimbletools.ai`  |
+| `NTCLI_MCP_API_URL`          | MCP runtime API base URL   | `https://mcp.nimbletools.ai`  |
+| `NTCLI_DEFAULT_PORT`         | OAuth callback server port | `41247`                        |
+
+**Note:** The API has been restructured for improved routing:
+- **Management API** (`api.nimbletools.ai`): Workspaces, tokens, secrets, registry, server management
+- **MCP Runtime** (`mcp.nimbletools.ai`): MCP protocol operations with simplified paths
 
 ## Examples
 
@@ -248,8 +257,8 @@ node langchain-example.js
 ### Advanced Usage
 
 ```bash
-# Non-expiring tokens for CI/CD
-ntcli token refresh --no-expiry
+# Create additional tokens for CI/CD (1 year expiry by default)
+ntcli token create
 
 # Custom expiration (24 hours)
 ntcli token refresh --expires-in 86400
@@ -262,6 +271,98 @@ ntcli server deploy my-server --verbose --debug
 
 # Copy Claude config to clipboard (macOS)
 ntcli server claude-config my-server | pbcopy
+```
+
+## Troubleshooting
+
+### Workspace Sync Issues
+
+If your local workspace list doesn't match the server, use these debugging commands:
+
+#### Check Sync Status
+```bash
+ntcli workspace sync
+# or shorthand:
+ntcli ws sync
+```
+
+**Sample Output:**
+```
+📊 Sync Summary
+  Server workspaces: 2
+  Local workspaces: 1
+  In sync: 1
+  On server only: 1
+  Local only: 0
+
+⚠️  Workspaces on server but not locally:
+  production-workspace (a1b2c3d4-...)
+
+   💡 To use these workspaces, you need to get access tokens:
+   💡 `ntcli token refresh <workspace-name>`
+```
+
+#### Fix Server-Only Workspaces
+```bash
+# Get access token for server workspace
+ntcli token refresh production-workspace
+
+# Now you can switch to it
+ntcli workspace switch production-workspace
+```
+
+#### Debug Storage Files
+```bash
+ntcli workspace debug
+# or shorthand:
+ntcli ws debug
+
+# For full file contents:
+ntcli ws debug --verbose
+```
+
+**Sample Output:**
+```
+🔍 NimbleTools Configuration Debug
+
+📁 Workspaces File:
+  Path: ~/.nimbletools/workspaces.json
+  Exists: ✓
+  Workspaces count: 2
+  Active workspace ID: ws-my-project-12345...
+
+Individual workspaces:
+  ✓ my-project (ws-my-project-12345...)
+    Token expires: Valid (expires in 120 minutes)
+  ✗ old-workspace (ws-old-workspace-67890...)
+    Token expires: Expired (expired 2 days ago)
+```
+
+### Common Issues
+
+#### "Workspace not found locally"
+**Problem:** You see a workspace in `ntcli ws sync` but can't switch to it.
+
+**Solution:** Get an access token for the server workspace:
+```bash
+ntcli token refresh <workspace-name>
+ntcli ws switch <workspace-name>
+```
+
+#### "Already authenticated" after logout
+**Problem:** `ntcli auth login` says you're already logged in after logout.
+
+**Solution:** Force re-authentication:
+```bash
+ntcli auth login --force
+```
+
+#### Server returns HTML instead of JSON
+**Problem:** Getting "Invalid JSON response" errors with HTML content.
+
+**Solution:** This usually indicates an API endpoint issue. Check:
+```bash
+ntcli health --debug    # Check API connectivity
 ```
 
 ## Architecture
@@ -297,12 +398,9 @@ ntcli --help
 - 📖 **Documentation**: [docs.nimbletools.ai](https://docs.nimbletools.ai/) | [QUICKSTART.md](QUICKSTART.md) | [DEVELOPMENT.md](DEVELOPMENT.md)
 - 🐛 **Issues**: [GitHub Issues](https://github.com/nimbletools/ntcli/issues)
 - 💬 **Community**: [NimbleTools Slack](https://join.slack.com/t/nimblebrain-users/shared_invite/zt-2jpyzxgvl-7_kFJQHyJSmJzWXmYK8cMg)
-- 🌐 **Website**: [nimbletools.dev](https://nimbletools.dev)
+- 🌐 **Website**: [nimbletools.ai](https://www.nimbletools.ai)
 
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
----
-
-**Built with ❤️ by the NimbleTools team**

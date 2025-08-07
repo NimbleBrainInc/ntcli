@@ -73,6 +73,7 @@ export interface AuthCommandOptions {
   port?: number;
   timeout?: number;
   verbose?: boolean;
+  force?: boolean;
 }
 
 /**
@@ -96,6 +97,7 @@ export interface CreateWorkspaceResponse {
   token_type: string;
   expires_in: number;
   scope: string[];
+  jti?: string;
 }
 
 export interface RefreshWorkspaceTokenResponse {
@@ -104,6 +106,18 @@ export interface RefreshWorkspaceTokenResponse {
   expires_in: number;
   scope: string[];
   message?: string;
+  jti?: string;
+}
+
+export interface WorkspaceToken {
+  jti: string;
+  created_at: number;
+}
+
+export interface ListWorkspaceTokensResponse {
+  workspace_id: string;
+  tokens: WorkspaceToken[];
+  count: number;
 }
 
 export interface ListWorkspacesResponse {
@@ -115,10 +129,7 @@ export interface ListWorkspacesResponse {
 export interface WorkspaceInfo {
   workspace_id: string;
   workspace_name: string;
-  namespace: string;
-  description?: string;
   created: string;
-  status: string;
 }
 
 export interface WorkspaceDetails {
@@ -228,10 +239,12 @@ export interface RegistryServer {
     };
   };
   source?: {
-    type: "github" | "docker";
+    type?: "github" | "docker" | string; // Optional since not always provided by API
     repository?: string;
-    docker_image?: string;
-    tag?: string;
+    branch?: string; // Add branch field from actual API response
+    path?: string;   // Add path field from actual API response
+    docker_image?: string; // Keep for backwards compatibility
+    tag?: string;          // Keep for backwards compatibility
   };
 }
 
@@ -311,19 +324,11 @@ export interface DeployServerResponse {
   server_id: string;
   name: string;
   status: "running" | "stopped" | "pending" | "error";
-  replicas: number;
   workspace_id: string;
   deployment_id?: string;
   // Optional additional properties that might be in a full response
   description?: string;
   version?: string;
-  image?: string;
-  port?: number;
-  max_replicas?: number;
-  cpu_request?: string;
-  memory_request?: string;
-  cpu_limit?: string;
-  memory_limit?: string;
   environment_variables?: Record<string, string>;
   created_at?: string;
   updated_at?: string;

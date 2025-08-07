@@ -71,7 +71,7 @@ export async function handleMCPCall(
     
     // Construct MCP endpoint URL
     const workspaceUuid = extractWorkspaceUuid(workspaceId);
-    const mcpEndpoint = `${apiClient.getBaseUrl()}/v1/workspaces/${workspaceUuid}/servers/${serverId}/mcp`;
+    const mcpEndpoint = `${apiClient.getMcpBaseUrl()}/${workspaceUuid}/${serverId}/mcp`;
 
     // Parse arguments
     let toolArgs: Record<string, any> = {};

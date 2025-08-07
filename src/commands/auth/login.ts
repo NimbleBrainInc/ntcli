@@ -18,13 +18,19 @@ export async function handleLogin(options: AuthCommandOptions = {}): Promise<voi
     const config = Config.getInstance();
     const tokenManager = new TokenManager();
     
-    // Check if already authenticated
+    // Check if already authenticated (unless forced)
     const isAuthenticated = await tokenManager.isAuthenticated();
-    if (isAuthenticated) {
+    if (isAuthenticated && !options.force) {
       const userInfo = await tokenManager.getUserInfo();
       spinner.succeed('✅ Already authenticated');
       console.log(chalk.green(`   Logged in as: ${userInfo?.email || 'Unknown user'}`));
+      console.log(chalk.gray('   💡 Use --force to login again with a different account'));
       return;
+    }
+    
+    if (isAuthenticated && options.force) {
+      spinner.text = '🔄 Clearing existing authentication...';
+      await tokenManager.clearTokens();
     }
 
     // Get Clerk OAuth configuration

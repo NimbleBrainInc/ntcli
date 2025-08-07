@@ -2,6 +2,9 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { WorkspaceCommandOptions } from '../../types/index.js';
 import { WorkspaceStorage } from '../../lib/workspace-storage.js';
+import { NimbleBrainApiClient, ApiError } from '../../lib/api/client.js';
+import { TokenManager } from '../../lib/auth/token-manager.js';
+import { ErrorHandler } from '../../lib/error-handler.js';
 /**
  * Switch to a different workspace
  */
@@ -12,22 +15,68 @@ export async function handleWorkspaceSwitch(
   const spinner = ora('🔍 Finding workspace...').start();
   
   try {
-    
-    // Initialize workspace storage
+    // Initialize storage and API client
     const workspaceStorage = new WorkspaceStorage();
+    const tokenManager = new TokenManager();
+    const apiClient = new NimbleBrainApiClient();
     
-    // Find workspace by name or ID
+    // Find workspace by name or ID locally first
     let workspace = workspaceStorage.getWorkspaceByName(nameOrId) || 
                     workspaceStorage.getWorkspace(nameOrId);
     
     if (!workspace) {
+      // Not found locally, check the server
+      spinner.text = '🌐 Checking server for workspace...';
+      
+      // Check authentication
+      const isAuthenticated = await tokenManager.isAuthenticated();
+      if (!isAuthenticated) {
+        spinner.fail('❌ Authentication required');
+        console.log(chalk.yellow('   💡 Please login first: `ntcli auth login`'));
+        process.exit(1);
+      }
+      
+      // Get valid Clerk JWT token
+      const clerkJwt = await tokenManager.getValidClerkIdToken();
+      if (!clerkJwt) {
+        spinner.fail('❌ No valid authentication token');
+        console.log(chalk.yellow('   💡 Please login first: `ntcli auth login`'));
+        process.exit(1);
+      }
+      
+      // Set JWT for API calls
+      apiClient.setClerkJwtToken(clerkJwt);
+      
+      try {
+        // Fetch workspaces from server
+        const serverResponse = await apiClient.listWorkspaces();
+        const serverWorkspaces = serverResponse.workspaces || [];
+        
+        // Try to find the workspace on the server
+        const serverWorkspace = serverWorkspaces.find(ws => 
+          ws.workspace_name === nameOrId || ws.workspace_id === nameOrId
+        );
+        
+        if (serverWorkspace) {
+          spinner.fail('❌ Workspace exists on server but not locally');
+          console.log(chalk.yellow(`   Found workspace '${serverWorkspace.workspace_name}' on server but it's not stored locally.`));
+          console.log(chalk.cyan('   💡 You need a local access token to switch to this workspace.'));
+          console.log(chalk.cyan('   💡 Try: `ntcli token refresh ' + serverWorkspace.workspace_name + '`'));
+          console.log(chalk.gray('   💡 Or recreate the workspace: `ntcli workspace create ' + serverWorkspace.workspace_name + '`'));
+          
+          process.exit(1);
+        }
+      } catch (serverError) {
+        // Server lookup failed, continue with local-only error
+      }
+      
       spinner.fail('❌ Workspace not found');
-      console.error(chalk.red(`   Workspace '${nameOrId}' not found locally`));
+      console.error(chalk.red(`   Workspace '${nameOrId}' not found locally or on server`));
       
       // Show all available workspaces
       const availableWorkspaces = workspaceStorage.getAllWorkspaces();
       if (availableWorkspaces.length > 0) {
-        console.log(chalk.yellow('\\n   Available workspaces:'));
+        console.log(chalk.yellow('\\n   Available local workspaces:'));
         availableWorkspaces.forEach(ws => {
           console.log(chalk.cyan(`   - ${ws.workspace_name} (${ws.workspace_id})`));
         });
@@ -65,14 +114,8 @@ export async function handleWorkspaceSwitch(
     }
     
   } catch (error) {
-    spinner.fail('❌ Failed to switch workspace');
-    
-    if (error instanceof Error) {
-      console.error(chalk.red(`   ${error.message}`));
-    } else {
-      console.error(chalk.red('   An unexpected error occurred'));
-    }
-    
+    spinner.stop();
+    ErrorHandler.handleApiError(error, 'Workspace switch');
     process.exit(1);
   }
 }

@@ -107,16 +107,29 @@ export async function handleRegistryShow(
     // Source information (if available)
     if (server.source) {
       console.log(chalk.blue.bold('📦 Source Information'));
-      console.log(`  ${chalk.gray('Type:')} ${server.source.type}`);
-      if (server.source.repository) {
-        console.log(`  ${chalk.gray('Repository:')} ${server.source.repository}`);
-      }
+      
+      // Determine type from available fields
       if (server.source.docker_image) {
+        console.log(`  ${chalk.gray('Type:')} docker`);
         console.log(`  ${chalk.gray('Docker Image:')} ${server.source.docker_image}`);
+        if (server.source.tag) {
+          console.log(`  ${chalk.gray('Tag:')} ${server.source.tag}`);
+        }
+      } else if (server.source.repository) {
+        console.log(`  ${chalk.gray('Type:')} repository`);
+        console.log(`  ${chalk.gray('Repository:')} ${server.source.repository}`);
+        if (server.source.branch) {
+          console.log(`  ${chalk.gray('Branch:')} ${server.source.branch}`);
+        }
+        if (server.source.path) {
+          console.log(`  ${chalk.gray('Path:')} ${server.source.path}`);
+        }
+      } else if (server.source.type) {
+        console.log(`  ${chalk.gray('Type:')} ${server.source.type}`);
+      } else {
+        console.log(`  ${chalk.gray('Type:')} unknown`);
       }
-      if (server.source.tag) {
-        console.log(`  ${chalk.gray('Tag:')} ${server.source.tag}`);
-      }
+      
       console.log();
     }
     

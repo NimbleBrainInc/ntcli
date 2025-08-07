@@ -1,7 +1,7 @@
 {
   "name": "@nimbletools/ntcli",
-  "version": "0.0.1",
-  "description": "Command-line interface for NimbleTools MCP Platform - deploy, manage, and integrate MCP servers with Claude Desktop",
+  "version": "0.1.0",
+  "description": "Command-line interface for NimbleTools MCP Platform - deploy, manage, and integrate MCP servers",
   "keywords": [
     "mcp",
     "model-context-protocol",
@@ -34,6 +34,7 @@
     "dist/**/*",
     "README.md",
     "QUICKSTART.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "scripts": {
@@ -65,5 +66,10 @@
   },
   "engines": {
     "node": ">=20.0.0"
+  },
+  "engines-strict": true,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }

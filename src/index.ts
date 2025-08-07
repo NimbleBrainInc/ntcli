@@ -28,12 +28,17 @@ import { handleServerRemove } from "./commands/server/remove.js";
 import { handleServerScale } from "./commands/server/scale.js";
 import { handleTokenRefresh } from "./commands/token/refresh.js";
 import { handleTokenShow } from "./commands/token/show.js";
+import { handleTokenCreate } from "./commands/token/create.js";
+import { handleTokenRevoke } from "./commands/token/revoke.js";
+import { handleTokenList } from "./commands/token/list.js";
 import { handleWorkspaceClear } from "./commands/workspace/clear.js";
 import { handleWorkspaceCreate } from "./commands/workspace/create.js";
 import { handleWorkspaceDelete } from "./commands/workspace/delete.js";
 import { handleWorkspaceList } from "./commands/workspace/list.js";
 import { handleWorkspaceSelect } from "./commands/workspace/select.js";
 import { handleWorkspaceSwitch } from "./commands/workspace/switch.js";
+import { handleWorkspaceSync } from "./commands/workspace/sync.js";
+import { handleWorkspaceDebug } from "./commands/workspace/debug.js";
 
 /**
  * Main CLI application entry point
@@ -66,6 +71,7 @@ async function main() {
       parseInt(val, 10)
     )
     .option("-v, --verbose", "Enable verbose output")
+    .option("-f, --force", "Force re-authentication even if already logged in")
     .action(async (options) => {
       try {
         await handleLogin(options);
@@ -260,6 +266,44 @@ async function main() {
         console.error(
           chalk.red(
             "Workspace clear failed:",
+            error instanceof Error ? error.message : "Unknown error"
+          )
+        );
+        process.exit(1);
+      }
+    });
+
+  // Workspace sync command 
+  workspaceCommand
+    .command("sync")
+    .description("Sync local workspace storage with server")
+    .option("-v, --verbose", "Show detailed information")
+    .action(async (options) => {
+      try {
+        await handleWorkspaceSync(options);
+      } catch (error) {
+        console.error(
+          chalk.red(
+            "Workspace sync failed:",
+            error instanceof Error ? error.message : "Unknown error"
+          )
+        );
+        process.exit(1);
+      }
+    });
+
+  // Workspace debug command (hidden/development)
+  workspaceCommand
+    .command("debug")
+    .description("Debug workspace storage files")
+    .option("-v, --verbose", "Show full file contents")
+    .action(async (options) => {
+      try {
+        await handleWorkspaceDebug(options);
+      } catch (error) {
+        console.error(
+          chalk.red(
+            "Workspace debug failed:",
             error instanceof Error ? error.message : "Unknown error"
           )
         );
@@ -721,7 +765,6 @@ async function main() {
       "Token expires at unix timestamp",
       (val: string) => parseInt(val, 10)
     )
-    .option("--no-expiry", "Create a non-expiring token (default)")
     .action(async (workspace, options) => {
       try {
         await handleTokenRefresh(workspace, options);
@@ -747,6 +790,75 @@ async function main() {
         console.error(
           chalk.red(
             "Token show failed:",
+            error instanceof Error ? error.message : "Unknown error"
+          )
+        );
+        process.exit(1);
+      }
+    });
+
+  // Token create command
+  tokenCommand
+    .command("create [workspace]")
+    .description("Create new workspace token (not persisted to local storage)")
+    .option("-w, --workspace <id>", "Target workspace ID or name")
+    .option(
+      "--expires-in <seconds>",
+      "Token expires in N seconds",
+      (val: string) => parseInt(val, 10)
+    )
+    .option(
+      "--expires-at <timestamp>",
+      "Token expires at unix timestamp",
+      (val: string) => parseInt(val, 10)
+    )
+    .action(async (workspace, options) => {
+      try {
+        await handleTokenCreate(workspace, options);
+      } catch (error) {
+        console.error(
+          chalk.red(
+            "Token create failed:",
+            error instanceof Error ? error.message : "Unknown error"
+          )
+        );
+        process.exit(1);
+      }
+    });
+
+  // Token revoke command
+  tokenCommand
+    .command("revoke <jti> [workspace]")
+    .description("Revoke workspace token by JTI")
+    .option("-w, --workspace <id>", "Target workspace ID or name")
+    .action(async (jti, workspace, options) => {
+      try {
+        await handleTokenRevoke(jti, workspace, options);
+      } catch (error) {
+        console.error(
+          chalk.red(
+            "Token revoke failed:",
+            error instanceof Error ? error.message : "Unknown error"
+          )
+        );
+        process.exit(1);
+      }
+    });
+
+  // Token list command
+  tokenCommand
+    .command("list [workspace]")
+    .alias("ls")
+    .description("List active workspace tokens")
+    .option("-w, --workspace <id>", "Target workspace ID or name")
+    .option("-v, --verbose", "Show detailed token information")
+    .action(async (workspace, options) => {
+      try {
+        await handleTokenList(workspace, options);
+      } catch (error) {
+        console.error(
+          chalk.red(
+            "Token list failed:",
             error instanceof Error ? error.message : "Unknown error"
           )
         );

@@ -66,7 +66,7 @@ export async function handleMCPTools(
     
     // Construct MCP endpoint URL
     const workspaceUuid = extractWorkspaceUuid(workspaceId);
-    const mcpEndpoint = `${apiClient.getBaseUrl()}/v1/workspaces/${workspaceUuid}/servers/${serverId}/mcp`;
+    const mcpEndpoint = `${apiClient.getMcpBaseUrl()}/${workspaceUuid}/${serverId}/mcp`;
 
     // Always show the MCP endpoint URL for debugging
     console.error(`🔧 MCP Endpoint: ${mcpEndpoint}`);

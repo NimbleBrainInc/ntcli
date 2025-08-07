@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 import { OAuthTokens, UserInfo } from '../../types/index.js';
@@ -89,13 +89,16 @@ export class TokenManager {
   async clearAll(): Promise<void> {
     try {
       if (existsSync(this.tokensFile)) {
-        require('fs').unlinkSync(this.tokensFile);
+        unlinkSync(this.tokensFile);
       }
       if (existsSync(this.userInfoFile)) {
-        require('fs').unlinkSync(this.userInfoFile);
+        unlinkSync(this.userInfoFile);
       }
-    } catch {
-      // Ignore errors during cleanup
+    } catch (error) {
+      // Log error in debug mode but don't throw
+      if (process.env.NTCLI_DEBUG) {
+        console.error('[DEBUG] Error clearing auth files:', error);
+      }
     }
   }
 

@@ -112,22 +112,10 @@ export async function handleServerDeploy(
     console.log(`  ${chalk.gray('Name:')} ${server.name || serverId}`);
     console.log(`  ${chalk.gray('Version:')} ${server.version || 'latest'}`);
     console.log(`  ${chalk.gray('Status:')} ${getStatusColor(server.status || 'unknown')}${server.status || 'unknown'}${chalk.reset()}`);
-    console.log(`  ${chalk.gray('Image:')} ${server.image || 'N/A'}`);
-    console.log(`  ${chalk.gray('Port:')} ${server.port || 'N/A'}`);
-    console.log(`  ${chalk.gray('Replicas:')} ${server.replicas || 0}/${server.max_replicas || 0}`);
     
     if (server.service_url) {
       console.log(`  ${chalk.gray('Service URL:')} ${chalk.cyan(server.service_url)}`);
     }
-    
-    console.log();
-    
-    // Resource limits
-    console.log(chalk.blue.bold('💾 Resource Allocation'));
-    console.log(`  ${chalk.gray('CPU Request:')} ${server.cpu_request || 'N/A'}`);
-    console.log(`  ${chalk.gray('CPU Limit:')} ${server.cpu_limit || 'N/A'}`);
-    console.log(`  ${chalk.gray('Memory Request:')} ${server.memory_request || 'N/A'}`);
-    console.log(`  ${chalk.gray('Memory Limit:')} ${server.memory_limit || 'N/A'}`);
     
     // Environment variables
     if (server.environment_variables && Object.keys(server.environment_variables).length > 0) {
@@ -165,7 +153,7 @@ export async function handleServerDeploy(
       }
       
       if (error.isAuthError()) {
-        console.log(chalk.yellow('   💡 Try running `ntcli auth login` to refresh your authentication'));
+        console.log(chalk.yellow('   💡 Try running `ntcli token refresh` to refresh your workspace token'));
       } else if (error.isNotFoundError()) {
         console.log(chalk.yellow(`   💡 Server '${serverId}' not found in registry`));
         console.log(chalk.cyan('   💡 Use `ntcli registry list` to see available servers'));
@@ -193,6 +181,7 @@ function getStatusColor(status: string): string {
     case 'running':
       return chalk.green('● ');
     case 'pending':
+    case 'deploying':
       return chalk.yellow('◐ ');
     case 'stopped':
       return chalk.gray('○ ');

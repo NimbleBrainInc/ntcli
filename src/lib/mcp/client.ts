@@ -19,6 +19,7 @@ export class MCPClient {
   private serverCapabilities?: any;
   private requestId: number = 1;
   private authToken?: string | undefined;
+  private sessionId?: string;
 
   constructor(mcpEndpoint: string, authToken?: string | undefined) {
     this.baseUrl = mcpEndpoint;
@@ -60,9 +61,65 @@ export class MCPClient {
       this.initialized = true;
       this.serverInfo = response.result.serverInfo;
       this.serverCapabilities = response.result.capabilities;
+      
+      // Extract session ID if present in response
+      if ((response.result as any).sessionId) {
+        this.sessionId = (response.result as any).sessionId;
+      }
+      
+      // Send notifications/initialized after successful initialization
+      await this.sendInitializedNotification();
     }
 
     return response;
+  }
+
+  /**
+   * Send notifications/initialized after successful initialization
+   */
+  private async sendInitializedNotification(): Promise<void> {
+    const notification = {
+      jsonrpc: '2.0',
+      method: 'notifications/initialized'
+    };
+
+    if (process.env.NTCLI_DEBUG) {
+      console.error(`🔄 MCP Notification: ${notification.method}`);
+      console.error(`   ${JSON.stringify(notification, null, 2)}`);
+    }
+
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json, text/event-stream',
+      };
+
+      if (this.authToken) {
+        headers['Authorization'] = `Bearer ${this.authToken}`;
+      }
+      
+      if (this.sessionId) {
+        headers['mcp-session-id'] = this.sessionId;
+      }
+
+      const response = await fetch(this.baseUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(notification)
+      });
+
+      if (process.env.NTCLI_DEBUG) {
+        const statusEmoji = response.ok ? '✅' : '❌';
+        console.error(`   ${statusEmoji} ${response.status} ${response.statusText}`);
+      }
+
+      // Notifications don't expect a response, so we don't parse the body
+    } catch (error) {
+      if (process.env.NTCLI_DEBUG) {
+        console.error(`   [DEBUG] Notification error:`, error);
+      }
+      // Don't throw - notifications are fire-and-forget
+    }
   }
 
   /**
@@ -76,8 +133,7 @@ export class MCPClient {
     const request: MCPRequest = {
       jsonrpc: '2.0',
       id: this.requestId++,
-      method: 'tools/list',
-      params: {}
+      method: 'tools/list'
     };
 
     return this.sendRequest<MCPToolsListResponse>(request);
@@ -132,11 +188,17 @@ export class MCPClient {
     try {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
+        'Accept': 'application/json, text/event-stream',
       };
 
       // Add authentication if available
       if (this.authToken) {
         headers['Authorization'] = `Bearer ${this.authToken}`;
+      }
+      
+      // Add session ID if available
+      if (this.sessionId) {
+        headers['mcp-session-id'] = this.sessionId;
       }
 
       const response = await fetch(this.baseUrl, {
@@ -150,28 +212,83 @@ export class MCPClient {
         console.error(`   ${statusEmoji} ${response.status} ${response.statusText}`);
       }
 
+      const contentType = response.headers.get('content-type') || '';
+      const sessionHeader = response.headers.get('mcp-session-id') || response.headers.get('x-session-id') || response.headers.get('session-id');
       const responseText = await response.text();
       
+      // Extract session ID from response headers if present
+      if (sessionHeader && !this.sessionId) {
+        this.sessionId = sessionHeader;
+        if (process.env.NTCLI_DEBUG) {
+          console.error(`   [DEBUG] Extracted session ID from headers: ${this.sessionId}`);
+        }
+      }
+      
       if (process.env.NTCLI_DEBUG) {
+        console.error(`   Content-Type: ${contentType}`);
+        console.error(`   All Response Headers:`);
+        for (const [key, value] of response.headers.entries()) {
+          console.error(`     ${key}: ${value}`);
+        }
         console.error(`   Response: ${responseText}`);
       }
 
       let responseData: T;
       try {
-        responseData = JSON.parse(responseText) as T;
+        // Check Content-Type header to determine response format
+        if (contentType.includes('text/event-stream') || contentType.includes('text/plain')) {
+          // Parse SSE format - extract JSON from data: line
+          const lines = responseText.split('\n');
+          let jsonData: string | null = null;
+          
+          for (const line of lines) {
+            if (line.startsWith('data:')) {
+              jsonData = line.substring(5).trim(); // Remove 'data:' prefix
+              break;
+            }
+          }
+          
+          if (!jsonData) {
+            throw new Error('No data line found in SSE response');
+          }
+          
+          responseData = JSON.parse(jsonData) as T;
+          
+          // Debug: log parsed SSE data to see if session ID is present
+          if (process.env.NTCLI_DEBUG && !this.sessionId) {
+            console.error(`[DEBUG] Parsed SSE JSON:`, JSON.stringify(responseData, null, 2));
+          }
+        } else {
+          // Standard JSON response
+          responseData = JSON.parse(responseText) as T;
+        }
       } catch (parseError) {
+        if (process.env.NTCLI_DEBUG) {
+          console.error(`[DEBUG] JSON parse error:`, parseError);
+          console.error(`[DEBUG] Raw response:`, responseText);
+        }
         throw new MCPError(`Invalid JSON response: ${responseText}`, -32700);
       }
 
       if (!response.ok) {
-        if (responseData.error) {
+        // For HTTP errors, check if we have a valid MCP error response
+        if (responseData && responseData.error) {
           throw new MCPError(
             responseData.error.message,
             responseData.error.code,
             responseData.error.data
           );
         } else {
-          throw new MCPError(`HTTP ${response.status}: ${response.statusText}`, response.status);
+          // Handle non-MCP HTTP errors (like 502 from nginx)
+          let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+          if (response.status === 502) {
+            errorMessage = 'MCP server is not accessible (502 Bad Gateway) - server may be down or misconfigured';
+          } else if (response.status === 503) {
+            errorMessage = 'MCP server is temporarily unavailable (503 Service Unavailable)';
+          } else if (response.status === 504) {
+            errorMessage = 'MCP server request timed out (504 Gateway Timeout)';
+          }
+          throw new MCPError(errorMessage, response.status);
         }
       }
 

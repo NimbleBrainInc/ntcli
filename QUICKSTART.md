@@ -67,7 +67,7 @@ ntcli server claude-config nationalparks-mcp
 
 ## Next Steps
 
-- **Create non-expiring tokens**: `ntcli token refresh --no-expiry`
+- **Create non-expiring tokens**: `ntcli token refresh`
 - **Scale servers**: `ntcli server scale nationalparks-mcp 3`
 - **View logs**: `ntcli server logs nationalparks-mcp`
 - **Manage workspaces**: `ntcli workspace list`, `ntcli workspace switch <name>`

@@ -124,7 +124,6 @@ ntcli server logs echo --lines 50 --verbose
 # Test token refresh with different expiration options
 ntcli token refresh --verbose
 ntcli token refresh --expires-in 3600 --verbose
-ntcli token refresh --no-expiry --verbose
 
 # Show token information
 ntcli token show --verbose

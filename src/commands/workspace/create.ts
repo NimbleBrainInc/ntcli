@@ -1,9 +1,9 @@
 import chalk from 'chalk';
 import ora from 'ora';
-import { CreateWorkspaceOptions, WorkspaceCommandOptions, CreateWorkspaceRequest } from '../../types/index.js';
+import { ApiError, NimbleBrainApiClient } from '../../lib/api/client.js';
 import { TokenManager } from '../../lib/auth/token-manager.js';
-import { NimbleBrainApiClient, ApiError } from '../../lib/api/client.js';
 import { WorkspaceStorage } from '../../lib/workspace-storage.js';
+import { CreateWorkspaceRequest, WorkspaceCommandOptions } from '../../types/index.js';
 
 /**
  * Create a new workspace
@@ -88,8 +88,8 @@ export async function handleWorkspaceCreate(
     
     // Show access token info (securely)
     console.log(chalk.cyan(`   🔑 Access token saved locally (expires in ${Math.floor(response.expires_in / 3600)} hours)`));
-    
-    console.log(chalk.cyan('\\n   💡 Workspace saved locally for easy switching!'));
+    console.log(chalk.cyan('   💡 Workspace saved locally for easy switching!'));
+
     if (!shouldSetActive) {
       console.log(chalk.cyan(`   💡 Use \`ntcli workspace switch ${response.workspace_name}\` to activate this workspace`));
     }
