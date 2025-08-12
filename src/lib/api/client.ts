@@ -1,9 +1,10 @@
 // Re-export the new separated clients
-export { ManagementClient, ManagementApiError } from './management-client.js';
+export { ManagementApiError, ManagementClient } from './management-client.js';
 export { MCPRuntimeClient, MCPRuntimeError } from './mcp-runtime-client.js';
 
 import { ManagementClient } from './management-client.js';
 import { MCPRuntimeClient } from './mcp-runtime-client.js';
+import { Config } from '../config.js';
 
 /**
  * @deprecated Use ManagementClient for management operations or MCPRuntimeClient for MCP operations
@@ -14,8 +15,8 @@ export class NimbleBrainApiClient {
   private mcpClient: MCPRuntimeClient;
 
   constructor(
-    managementBaseUrl: string = process.env.NTCLI_MANAGEMENT_API_URL || "https://api.nimbletools.dev",
-    mcpBaseUrl: string = process.env.NTCLI_MCP_API_URL || "https://mcp.nimbletools.dev"
+    managementBaseUrl: string = process.env.NTCLI_MANAGEMENT_API_URL || "https://api.nimbletools.ai",
+    mcpBaseUrl: string = process.env.NTCLI_MCP_API_URL || "https://mcp.nimbletools.ai"
   ) {
     this.managementClient = new ManagementClient(managementBaseUrl);
     this.mcpClient = new MCPRuntimeClient(mcpBaseUrl);

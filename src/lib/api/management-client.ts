@@ -22,9 +22,7 @@ import {
   ServerLogsResponse,
   SetSecretRequest,
   SetSecretResponse,
-  UpdateWorkspaceRequest,
-  UpdateWorkspaceResponse,
-  WorkspaceDetails,
+  WorkspaceDetails
 } from "../../types/index.js";
 
 /**
@@ -59,7 +57,7 @@ export class ManagementClient {
   }
 
   constructor(
-    baseUrl: string = process.env.NTCLI_MANAGEMENT_API_URL || "https://api.nimbletools.dev"
+    baseUrl: string = process.env.NTCLI_MANAGEMENT_API_URL || "https://api.nimbletools.ai"
   ) {
     this.baseUrl = baseUrl;
     this.defaultHeaders = {
