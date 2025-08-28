@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2025-08-28
+
+### Changed
+- Refactored authentication system to use dependency injection pattern
+- Removed client-side authentication checks - commands now attempt API calls and handle 401s
+- Consolidated configuration into single `~/.ntcli/config.json` file
+- Changed config directory from `~/.nimbletools/` to `~/.ntcli/`
+- Replaced environment variables with domain configuration system
+
+### Added
+- `ntcli domain set/show` commands for API endpoint configuration
+- `ntcli config show` command to display configuration file
+- `--insecure` flag for HTTP protocol support
+- ESLint and TypeScript checking with GitHub Actions CI
+- Unified ConfigManager for all configuration operations
+
+### Removed
+- `NTCLI_DISABLE_AUTH` environment variable and related logic
+- `NTCLI_MANAGEMENT_API_URL` and `NTCLI_MCP_API_URL` environment variables
+- `ntcli workspace debug` command
+- Separate configuration files (tokens.json, user.json, workspaces.json)
+
+### Breaking Changes
+- Configuration file location and structure changed
+- Environment variables removed
+- Users must reconfigure after upgrade
+
+## [0.2.0] - 2025-08-11
+
+### Changed
+- Bug fixes and stability improvements
+
 ## [0.1.0] - 2025-01-08
 
 ### Added

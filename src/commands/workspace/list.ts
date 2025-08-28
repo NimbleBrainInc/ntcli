@@ -1,8 +1,8 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import { WorkspaceCommandOptions } from '../../types/index.js';
-import { WorkspaceStorage } from '../../lib/workspace-storage.js';
-import { NimbleBrainApiClient, ApiError } from '../../lib/api/client.js';
+import { ConfigManager } from '../../lib/config-manager.js';
+import { ManagementClient, ManagementApiError } from '../../lib/api/management-client.js';
 import { TokenManager } from '../../lib/auth/token-manager.js';
 import { ErrorHandler } from '../../lib/error-handler.js';
 
@@ -16,36 +16,23 @@ export async function handleWorkspaceList(
   
   try {
     // Initialize storage and API client
-    const workspaceStorage = new WorkspaceStorage();
+    const configManager = new ConfigManager();
     const tokenManager = new TokenManager();
-    const apiClient = new NimbleBrainApiClient();
+    const apiClient = new ManagementClient();
     
-    // Check authentication
-    const isAuthenticated = await tokenManager.isAuthenticated();
-    if (!isAuthenticated) {
-      spinner.fail('❌ Not authenticated');
-      console.log(chalk.yellow('   💡 Please login first: `ntcli auth login`'));
-      process.exit(1);
-    }
-    
-    // Get valid Clerk JWT token
+    // Try to get Clerk JWT token (if available)
     const clerkJwt = await tokenManager.getValidClerkIdToken();
-    if (!clerkJwt) {
-      spinner.fail('❌ No valid authentication token');
-      console.log(chalk.yellow('   💡 Please login first: `ntcli auth login`'));
-      process.exit(1);
+    if (clerkJwt) {
+      apiClient.setClerkJwtToken(clerkJwt);
     }
-    
-    // Set JWT for API calls
-    apiClient.setClerkJwtToken(clerkJwt);
     
     // Fetch workspaces from server
     const serverResponse = await apiClient.listWorkspaces();
     const serverWorkspaces = serverResponse.workspaces || [];
     
     // Get local workspace info (for active workspace and tokens)
-    const activeWorkspace = workspaceStorage.getActiveWorkspace();
-    const localWorkspaces = workspaceStorage.getAllWorkspaces();
+    const activeWorkspace = configManager.getActiveWorkspace();
+    const localWorkspaces = configManager.getAllWorkspaces();
     
     // Create a helper function to extract UUID from full workspace ID
     const extractUuid = (fullWorkspaceId: string): string => {
@@ -95,7 +82,7 @@ export async function handleWorkspaceList(
         // Show local token info if available
         const localInfo = localWorkspaceMap.get(workspace.workspace_id);
         if (localInfo && localInfo.access_token) {
-          const tokenInfo = workspaceStorage.getTokenExpirationInfo(workspace.workspace_id);
+          const tokenInfo = configManager.getTokenExpirationInfo(workspace.workspace_id);
           if (tokenInfo && !tokenInfo.isExpired) {
             console.log(`    ${chalk.gray('Token:')} ${chalk.gray('••••••••' + localInfo.access_token.slice(-8))} ${chalk.dim('(expires in ' + tokenInfo.minutesRemaining + 'm)')}`);
           } else {

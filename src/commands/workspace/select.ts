@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { WorkspaceCommandOptions } from '../../types/index.js';
-import { WorkspaceStorage } from '../../lib/workspace-storage.js';
+import { ConfigManager } from '../../lib/config-manager.js';
 
 /**
  * Interactive workspace selection (similar to kubectl namespace selection)
@@ -10,12 +10,12 @@ export async function handleWorkspaceSelect(
   options: WorkspaceCommandOptions = {}
 ): Promise<void> {
   try {
-    // Initialize workspace storage
-    const workspaceStorage = new WorkspaceStorage();
+    // Initialize configuration manager
+    const configManager = new ConfigManager();
     
     // Get all workspaces
-    const workspaces = workspaceStorage.getAllWorkspaces();
-    const activeWorkspace = workspaceStorage.getActiveWorkspace();
+    const workspaces = configManager.getAllWorkspaces();
+    const activeWorkspace = configManager.getActiveWorkspace();
     
     if (workspaces.length === 0) {
       console.log(chalk.yellow('❌ No workspaces available'));
@@ -33,7 +33,7 @@ export async function handleWorkspaceSelect(
       console.log(chalk.green(`✅ Only one workspace available: ${workspace.workspace_name}`));
       
       if (!activeWorkspace || activeWorkspace.workspace_id !== workspace.workspace_id) {
-        const success = workspaceStorage.setActiveWorkspace(workspace.workspace_id);
+        const success = configManager.setActiveWorkspace(workspace.workspace_id);
         if (success) {
           console.log(chalk.green('   ✓ Set as active workspace'));
         }
@@ -46,7 +46,7 @@ export async function handleWorkspaceSelect(
     // Prepare choices for interactive selection
     const choices = workspaces.map(workspace => {
       const isActive = activeWorkspace?.workspace_id === workspace.workspace_id;
-      const tokenInfo = workspaceStorage.getTokenExpirationInfo(workspace.workspace_id);
+      const tokenInfo = configManager.getTokenExpirationInfo(workspace.workspace_id);
       
       let status = '';
       if (isActive) {
@@ -90,14 +90,14 @@ export async function handleWorkspaceSelect(
     }
 
     // Switch to selected workspace
-    const success = workspaceStorage.setActiveWorkspace(selectedWorkspace.workspace_id);
+    const success = configManager.setActiveWorkspace(selectedWorkspace.workspace_id);
     
     if (success) {
       console.log();
       console.log(chalk.green(`✅ Switched to workspace: ${selectedWorkspace.workspace_name}`));
       
       // Show token status
-      const tokenInfo = workspaceStorage.getTokenExpirationInfo(selectedWorkspace.workspace_id);
+      const tokenInfo = configManager.getTokenExpirationInfo(selectedWorkspace.workspace_id);
       if (selectedWorkspace.access_token && tokenInfo && !tokenInfo.isExpired) {
         console.log(chalk.cyan(`   🔑 Access token available (expires in ${tokenInfo.minutesRemaining} minutes)`));
       } else if (selectedWorkspace.access_token) {

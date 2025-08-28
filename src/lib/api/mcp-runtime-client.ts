@@ -1,3 +1,7 @@
+import { AuthProvider } from "../../types/auth.js";
+import { AuthProviderFactory } from "../auth/auth-provider.js";
+import { ConfigManager } from "../config-manager.js";
+
 /**
  * HTTP client for NimbleTools MCP Runtime API (mcp.nimbletools.dev)
  * Handles MCP protocol operations with simplified paths
@@ -5,6 +9,7 @@
 export class MCPRuntimeClient {
   private baseUrl: string;
   private defaultHeaders: Record<string, string>;
+  private authProvider: AuthProvider;
 
   /**
    * Extract UUID from workspace ID
@@ -30,13 +35,28 @@ export class MCPRuntimeClient {
   }
 
   constructor(
-    baseUrl: string = process.env.NTCLI_MCP_API_URL || "https://mcp.nimbletools.dev"
+    baseUrl?: string,
+    authProvider?: AuthProvider
   ) {
-    this.baseUrl = baseUrl;
+    // Use provided baseUrl, or get from config, or fall back to default
+    if (baseUrl) {
+      this.baseUrl = baseUrl;
+    } else {
+      const configManager = new ConfigManager();
+      this.baseUrl = configManager.getMcpApiUrl();
+    }
+    
     this.defaultHeaders = {
       "Content-Type": "application/json",
       "User-Agent": "ntcli/1.0.0",
     };
+    
+    // Use provided auth provider or create a simple one
+    if (authProvider) {
+      this.authProvider = authProvider;
+    } else {
+      this.authProvider = AuthProviderFactory.createProvider();
+    }
   }
 
   /**
@@ -50,14 +70,14 @@ export class MCPRuntimeClient {
    * Set workspace token for MCP operations
    */
   setWorkspaceToken(token: string): void {
-    this.defaultHeaders["Authorization"] = `Bearer ${token}`;
+    this.authProvider.setToken(token);
   }
 
   /**
    * Clear authentication headers
    */
   clearAuth(): void {
-    delete this.defaultHeaders["Authorization"];
+    this.authProvider.clearAuth();
   }
 
   /**
@@ -86,7 +106,8 @@ export class MCPRuntimeClient {
     customHeaders?: Record<string, string>
   ): Promise<T> {
     const url = `${this.baseUrl}${path}`;
-    const headers = { ...this.defaultHeaders, ...customHeaders };
+    const authHeaders = this.authProvider.getAuthHeaders();
+    const headers = { ...this.defaultHeaders, ...authHeaders, ...customHeaders };
 
     try {
       const fetchOptions: RequestInit = {

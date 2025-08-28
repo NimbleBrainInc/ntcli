@@ -1,8 +1,8 @@
 import chalk from 'chalk';
 import ora from 'ora';
-import { ApiError, NimbleBrainApiClient } from '../../lib/api/client.js';
+import { ManagementApiError, ManagementClient } from '../../lib/api/management-client.js';
 import { TokenManager } from '../../lib/auth/token-manager.js';
-import { WorkspaceStorage } from '../../lib/workspace-storage.js';
+import { ConfigManager } from '../../lib/config-manager.js';
 import { WorkspaceManager } from '../../lib/workspace/workspace-manager.js';
 import { WorkspaceInfo } from '../../types/index.js';
 
@@ -20,24 +20,13 @@ export async function handleTokenCreate(
   try {
     // Get workspace to create token for
     const workspaceManager = new WorkspaceManager();
-    const workspaceStorage = new WorkspaceStorage();
+    const configManager = new ConfigManager();
     
-    // Check if we have valid Clerk authentication first
+    // Get token manager
     const tokenManager = new TokenManager();
-    const isAuthenticated = await tokenManager.isAuthenticated();
-    if (!isAuthenticated) {
-      console.error(chalk.red('❌ Not authenticated with Clerk'));
-      console.log(chalk.yellow('   Please run `ntcli auth login` first'));
-      process.exit(1);
-    }
 
-    // Get valid Clerk JWT token (we need the ID token for the API call)
+    // Try to get valid Clerk JWT token (we need the ID token for the API call)
     const clerkIdToken = await tokenManager.getValidClerkIdToken();
-    if (!clerkIdToken) {
-      console.error(chalk.red('❌ No valid Clerk ID token'));
-      console.log(chalk.yellow('   Please run `ntcli auth login` to refresh your Clerk session'));
-      process.exit(1);
-    }
 
     let targetWorkspace;
     let serverWorkspaceInfo: WorkspaceInfo | null = null;
@@ -45,16 +34,18 @@ export async function handleTokenCreate(
     
     if (workspaceIdentifier) {
       // Use specified workspace - first try locally
-      targetWorkspace = workspaceStorage.getWorkspaceByName(workspaceIdentifier) || 
-                       workspaceStorage.getWorkspace(workspaceIdentifier);
+      targetWorkspace = configManager.getWorkspaceByName(workspaceIdentifier) || 
+                       configManager.getWorkspace(workspaceIdentifier);
       
       if (!targetWorkspace) {
         // Not found locally, check the server
         console.log(chalk.yellow(`   Workspace '${workspaceIdentifier}' not found locally, checking server...`));
         
         // Initialize API client with Clerk ID token
-        const apiClient = new NimbleBrainApiClient();
-        apiClient.setClerkJwtToken(clerkIdToken);
+        const apiClient = new ManagementClient();
+        if (clerkIdToken) {
+          apiClient.setClerkJwtToken(clerkIdToken);
+        }
         
         try {
           // Fetch workspaces from server
@@ -106,8 +97,10 @@ export async function handleTokenCreate(
     const spinner = ora(`🔄 Creating new token for workspace: ${targetWorkspace.workspace_name}...`).start();
 
     // Initialize API client with Clerk ID token
-    const apiClient = new NimbleBrainApiClient();
-    apiClient.setClerkJwtToken(clerkIdToken);
+    const apiClient = new ManagementClient();
+    if (clerkIdToken) {
+      apiClient.setClerkJwtToken(clerkIdToken);
+    }
     
     // Prepare token options
     const tokenOptions: { expires_in?: number; expires_at?: number } = {};
@@ -184,7 +177,7 @@ export async function handleTokenCreate(
   } catch (error) {
     console.error(chalk.red('❌ Failed to create workspace token'));
     
-    if (error instanceof ApiError) {
+    if (error instanceof ManagementApiError) {
       const userMessage = error.getUserMessage();
       console.error(chalk.red(`   ${userMessage}`));
       

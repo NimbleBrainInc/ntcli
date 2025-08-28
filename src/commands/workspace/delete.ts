@@ -3,8 +3,8 @@ import ora from 'ora';
 import readline from 'readline';
 import { WorkspaceCommandOptions } from '../../types/index.js';
 import { TokenManager } from '../../lib/auth/token-manager.js';
-import { WorkspaceStorage } from '../../lib/workspace-storage.js';
-import { NimbleBrainApiClient, ApiError } from '../../lib/api/client.js';
+import { ConfigManager } from '../../lib/config-manager.js';
+import { ManagementClient, ManagementApiError } from '../../lib/api/management-client.js';
 
 /**
  * Delete a workspace
@@ -17,21 +17,13 @@ export async function handleWorkspaceDelete(
   
   try {
     const tokenManager = new TokenManager();
-    const workspaceStorage = new WorkspaceStorage();
-    
-    // Check authentication
-    const isAuthenticated = await tokenManager.isAuthenticated();
-    if (!isAuthenticated) {
-      spinner.fail('❌ Authentication required');
-      console.log(chalk.yellow('   Please run `ntcli auth login` first'));
-      process.exit(1);
-    }
+    const configManager = new ConfigManager();
     
     // Find workspace by name or ID
     spinner.text = '🔍 Finding workspace...';
-    let workspaceToDelete = workspaceStorage.getWorkspaceByName(name);
+    let workspaceToDelete = configManager.getWorkspaceByName(name);
     if (!workspaceToDelete) {
-      workspaceToDelete = workspaceStorage.getWorkspace(name);
+      workspaceToDelete = configManager.getWorkspace(name);
     }
     
     if (!workspaceToDelete) {
@@ -68,16 +60,13 @@ export async function handleWorkspaceDelete(
     
     spinner.text = '🗑️  Deleting workspace from API...';
     
-    // Delete workspace via API using Clerk ID token
+    // Try to delete workspace via API using Clerk ID token
     const clerkIdToken = await tokenManager.getValidClerkIdToken();
-    if (!clerkIdToken) {
-      spinner.fail('❌ No valid authentication token');
-      console.log(chalk.yellow('   Please run `ntcli auth login` first'));
-      process.exit(1);
-    }
     
-    const apiClient = new NimbleBrainApiClient();
-    apiClient.setClerkJwtToken(clerkIdToken);
+    const apiClient = new ManagementClient();
+    if (clerkIdToken) {
+      apiClient.setClerkJwtToken(clerkIdToken);
+    }
     
     if (process.env.NTCLI_DEBUG) {
       console.error(`[DEBUG] Deleting workspace ${workspaceId} from API...`);
@@ -89,7 +78,7 @@ export async function handleWorkspaceDelete(
         console.error(`[DEBUG] Delete API response:`, JSON.stringify(result, null, 2));
       }
     } catch (apiError) {
-      if (apiError instanceof ApiError && apiError.statusCode === 404) {
+      if (apiError instanceof ManagementApiError && apiError.statusCode === 404) {
         // Workspace doesn't exist on server, but we can still remove it locally
         console.log(chalk.yellow('   ⚠️  Workspace not found on server, removing from local config'));
       } else {
@@ -100,13 +89,13 @@ export async function handleWorkspaceDelete(
     spinner.text = '🗑️  Removing workspace from local config...';
     
     // Remove workspace from local storage
-    workspaceStorage.removeWorkspace(workspaceId);
+    configManager.removeWorkspace(workspaceId);
     
     spinner.succeed('✅ Workspace deleted successfully!');
     console.log(chalk.gray(`   Deleted workspace: ${workspaceName} (${workspaceId})`));
     
     // Check if this was the active workspace
-    const activeWorkspace = workspaceStorage.getActiveWorkspace();
+    const activeWorkspace = configManager.getActiveWorkspace();
     if (!activeWorkspace) {
       console.log(chalk.yellow('   ⚠️  This was your active workspace'));
       console.log(chalk.cyan('   💡 Use `ntcli workspace switch <name>` to set a new active workspace'));
@@ -115,7 +104,7 @@ export async function handleWorkspaceDelete(
   } catch (error) {
     spinner.fail('❌ Failed to delete workspace');
     
-    if (error instanceof ApiError) {
+    if (error instanceof ManagementApiError) {
       const userMessage = error.getUserMessage();
       console.error(chalk.red(`   ${userMessage}`));
       

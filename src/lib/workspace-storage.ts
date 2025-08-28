@@ -1,7 +1,7 @@
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
-import { CreateWorkspaceResponse, WorkspaceInfo } from '../types/index.js';
+import { CreateWorkspaceResponse } from '../types/index.js';
 
 /**
  * Local workspace information for CLI
@@ -34,7 +34,7 @@ export class WorkspaceStorage {
   private workspacesFile: string;
 
   constructor() {
-    this.configDir = join(homedir(), '.nimbletools');
+    this.configDir = join(homedir(), '.ntcli');
     this.workspacesFile = join(this.configDir, 'workspaces.json');
     this.ensureConfigDir();
   }
@@ -62,7 +62,7 @@ export class WorkspaceStorage {
     try {
       const configJson = readFileSync(this.workspacesFile, 'utf8');
       return JSON.parse(configJson) as WorkspaceConfig;
-    } catch (error) {
+    } catch {
       // If file is corrupted, start fresh
       return {
         workspaces: {},
@@ -85,10 +85,10 @@ export class WorkspaceStorage {
    */
   addWorkspace(response: CreateWorkspaceResponse): void {
     const config = this.loadConfig();
-    
+
     // Calculate token expiration timestamp
     const expiresAt = Date.now() + (response.expires_in * 1000);
-    
+
     const workspace: LocalWorkspace = {
       workspace_id: response.workspace_id,
       workspace_name: response.workspace_name,
@@ -103,20 +103,39 @@ export class WorkspaceStorage {
     this.saveConfig(config);
   }
 
+  /**
+   * Add a workspace without token (for auth disabled mode)
+   */
+  addWorkspaceWithoutToken(workspaceId: string, workspaceName: string): void {
+    const config = this.loadConfig();
+
+    const workspace: LocalWorkspace = {
+      workspace_id: workspaceId,
+      workspace_name: workspaceName,
+      access_token: 'auth-disabled',
+      token_type: 'disabled',
+      expires_at: Date.now() + (365 * 24 * 60 * 60 * 1000), // 1 year from now
+      scope: ['disabled']
+    };
+
+    config.workspaces[workspaceId] = workspace;
+    this.saveConfig(config);
+  }
+
 
   /**
    * Remove a workspace
    */
   removeWorkspace(workspaceId: string): void {
     const config = this.loadConfig();
-    
+
     delete config.workspaces[workspaceId];
-    
+
     // If this was the active workspace, clear active workspace
     if (config.activeWorkspaceId === workspaceId) {
       delete config.activeWorkspaceId;
     }
-    
+
     this.saveConfig(config);
   }
 
@@ -125,20 +144,20 @@ export class WorkspaceStorage {
    */
   setActiveWorkspace(workspaceId: string): boolean {
     const config = this.loadConfig();
-    
+
     if (!config.workspaces[workspaceId]) {
       return false; // Workspace doesn't exist
     }
-    
+
     // Clear isActive flag from all workspaces
     Object.values(config.workspaces).forEach(ws => {
       ws.isActive = false;
     });
-    
+
     // Set new active workspace
     config.activeWorkspaceId = workspaceId;
     config.workspaces[workspaceId].isActive = true;
-    
+
     this.saveConfig(config);
     return true;
   }
@@ -148,11 +167,11 @@ export class WorkspaceStorage {
    */
   getActiveWorkspace(): LocalWorkspace | null {
     const config = this.loadConfig();
-    
+
     if (!config.activeWorkspaceId) {
       return null;
     }
-    
+
     return config.workspaces[config.activeWorkspaceId] || null;
   }
 
@@ -203,13 +222,13 @@ export class WorkspaceStorage {
    */
   updateWorkspaceToken(workspaceId: string, accessToken: string, tokenType: string, expiresIn: number, scope: string[], jti?: string): boolean {
     const config = this.loadConfig();
-    
+
     if (!config.workspaces[workspaceId]) {
       return false;
     }
-    
+
     const expiresAt = Date.now() + (expiresIn * 1000);
-    
+
     config.workspaces[workspaceId].access_token = accessToken;
     config.workspaces[workspaceId].token_type = tokenType;
     config.workspaces[workspaceId].expires_at = expiresAt;
@@ -227,11 +246,11 @@ export class WorkspaceStorage {
   isWorkspaceTokenValid(workspaceId: string): boolean {
     const config = this.loadConfig();
     const workspace = config.workspaces[workspaceId];
-    
+
     if (!workspace || !workspace.access_token) {
       return false;
     }
-    
+
     // Check if token is expired (with 5 minute buffer)
     const bufferMs = 5 * 60 * 1000; // 5 minutes
     return workspace.expires_at > (Date.now() + bufferMs);
@@ -244,7 +263,7 @@ export class WorkspaceStorage {
     if (!this.isWorkspaceTokenValid(workspaceId)) {
       return null;
     }
-    
+
     const workspace = this.getWorkspace(workspaceId);
     return workspace ? workspace.access_token : null;
   }
@@ -292,15 +311,15 @@ export class WorkspaceStorage {
    */
   clearActiveWorkspace(): boolean {
     const config = this.loadConfig();
-    
+
     // Clear isActive flag from all workspaces
     Object.values(config.workspaces).forEach(ws => {
       ws.isActive = false;
     });
-    
+
     // Clear active workspace ID
     delete config.activeWorkspaceId;
-    
+
     this.saveConfig(config);
     return true;
   }

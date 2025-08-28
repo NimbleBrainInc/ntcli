@@ -1,7 +1,9 @@
 # NimbleTools CLI (ntcli)
 
-[![npm version](https://badge.fury.io/js/%40nimbletools%2Fntcli.svg)](https://badge.fury.io/js/%40nimbletools%2Fntcli)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+![NPM Version](https://img.shields.io/npm/v/%40nimbletools%2Fntcli)
+![GitHub License](https://img.shields.io/github/license/NimbleBrainInc/ntcli)
+[![Actions status](https://github.com/NimbleBrainInc/ntcli/actions/workflows/ci.yml/badge.svg)](https://github.com/NimbleBrainInc/ntcli/actions)
+[![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?logo=discord&logoColor=white)](https://www.nimbletools.ai/discord?utm_source=github&utm_medium=readme&utm_campaign=ntcli&utm_content=header-badge)
 
 Command-line interface for the NimbleTools MCP Platform. Deploy, manage, and integrate Model Context Protocol (MCP) servers with Claude Desktop.
 
@@ -57,6 +59,15 @@ npm link
 
 ## Commands
 
+### Platform Information
+
+```bash
+ntcli info                    # Show platform information and resources
+ntcli info --verbose          # Show detailed configuration
+ntcli info --discord          # Open Discord community
+ntcli info --docs             # Open documentation
+```
+
 ### Authentication
 
 ```bash
@@ -74,7 +85,6 @@ ntcli workspace switch <name>          # Switch active workspace
 ntcli workspace delete <name>          # Delete workspace
 ntcli workspace clear                  # Clear active workspace
 ntcli workspace sync                   # Sync local storage with server
-ntcli workspace debug                  # Debug workspace storage files
 ```
 
 ### Server Management
@@ -96,6 +106,15 @@ ntcli mcp tools <server-id>            # List available tools
 ntcli mcp call <server-id> <tool> --arg key=value    # Call MCP tool
 ```
 
+### Domain Management
+
+```bash
+ntcli domain show                      # Show current domain configuration
+ntcli domain show --verbose           # Show all API endpoints
+ntcli domain set <domain>              # Set API domain (HTTPS by default)
+ntcli domain set <domain> --insecure   # Set API domain with HTTP
+```
+
 ### Registry & Claude Integration
 
 ```bash
@@ -104,11 +123,18 @@ ntcli registry show <server-id>        # Get server details
 ntcli server claude-config <server-id> # Generate Claude Desktop config
 ```
 
+### Configuration Management
+
+```bash
+ntcli config show                      # Show ~/.ntcli/config.json contents
+ntcli config reset                     # Reset all local configuration
+```
+
 ### Token Management
 
 ```bash
 ntcli token refresh                    # Refresh workspace token (1 year expiry)
-ntcli token create                     # Create new workspace token  
+ntcli token create                     # Create new workspace token
 ntcli token list                       # List active workspace tokens
 ntcli token revoke <jti>               # Revoke specific token by JTI
 ntcli token show                       # Show token information
@@ -188,17 +214,29 @@ const tools = [searchParks];
 
 ## Configuration
 
+### Domain Configuration
+
+Configure the API domain for connecting to different NimbleTools deployments:
+
+```bash
+ntcli domain show                           # Show current domain configuration
+ntcli domain show --verbose                # Show all API endpoints
+ntcli domain set nimbletools.ai             # Use production (default, HTTPS)
+ntcli domain set localhost:3000             # Use local development (auto HTTP)
+ntcli domain set dev.mycompany.com          # Use custom deployment (HTTPS)
+ntcli domain set internal.api.com --insecure # Use HTTP for internal APIs
+```
+
 ### Environment Variables
 
-| Variable                     | Description                | Default                        |
-| ---------------------------- | -------------------------- | ------------------------------ |
-| `CLERK_OAUTH_CLIENT_ID`      | Clerk OAuth Client ID      | Required                       |
-| `CLERK_DOMAIN`               | Clerk domain               | Required                       |
-| `NTCLI_MANAGEMENT_API_URL`   | Management API base URL    | `https://api.nimbletools.ai`  |
-| `NTCLI_MCP_API_URL`          | MCP runtime API base URL   | `https://mcp.nimbletools.ai`  |
-| `NTCLI_DEFAULT_PORT`         | OAuth callback server port | `41247`                        |
+| Variable                | Description                | Default              |
+| ----------------------- | -------------------------- | -------------------- |
+| `CLERK_OAUTH_CLIENT_ID` | Clerk OAuth Client ID      | Built-in default     |
+| `NTCLI_DEFAULT_PORT`    | OAuth callback server port | `41247`              |
+| `NTCLI_OAUTH_TIMEOUT`   | OAuth timeout (ms)         | `300000` (5 minutes) |
 
 **Note:** The API has been restructured for improved routing:
+
 - **Management API** (`api.nimbletools.ai`): Workspaces, tokens, secrets, registry, server management
 - **MCP Runtime** (`mcp.nimbletools.ai`): MCP protocol operations with simplified paths
 
@@ -280,6 +318,7 @@ ntcli server claude-config my-server | pbcopy
 If your local workspace list doesn't match the server, use these debugging commands:
 
 #### Check Sync Status
+
 ```bash
 ntcli workspace sync
 # or shorthand:
@@ -287,6 +326,7 @@ ntcli ws sync
 ```
 
 **Sample Output:**
+
 ```
 📊 Sync Summary
   Server workspaces: 2
@@ -303,6 +343,7 @@ ntcli ws sync
 ```
 
 #### Fix Server-Only Workspaces
+
 ```bash
 # Get access token for server workspace
 ntcli token refresh production-workspace
@@ -312,6 +353,7 @@ ntcli workspace switch production-workspace
 ```
 
 #### Debug Storage Files
+
 ```bash
 ntcli workspace debug
 # or shorthand:
@@ -322,6 +364,7 @@ ntcli ws debug --verbose
 ```
 
 **Sample Output:**
+
 ```
 🔍 NimbleTools Configuration Debug
 
@@ -341,26 +384,32 @@ Individual workspaces:
 ### Common Issues
 
 #### "Workspace not found locally"
+
 **Problem:** You see a workspace in `ntcli ws sync` but can't switch to it.
 
 **Solution:** Get an access token for the server workspace:
+
 ```bash
 ntcli token refresh <workspace-name>
 ntcli ws switch <workspace-name>
 ```
 
 #### "Already authenticated" after logout
+
 **Problem:** `ntcli auth login` says you're already logged in after logout.
 
 **Solution:** Force re-authentication:
+
 ```bash
 ntcli auth login --force
 ```
 
 #### Server returns HTML instead of JSON
+
 **Problem:** Getting "Invalid JSON response" errors with HTML content.
 
 **Solution:** This usually indicates an API endpoint issue. Check:
+
 ```bash
 ntcli health --debug    # Check API connectivity
 ```
@@ -393,14 +442,14 @@ npm link
 ntcli --help
 ```
 
+## License
+
+Apache 2.0 - see [LICENSE](LICENSE) for details.
+
 ## Support
 
 - 📖 **Documentation**: [docs.nimbletools.ai](https://docs.nimbletools.ai/) | [QUICKSTART.md](QUICKSTART.md) | [DEVELOPMENT.md](DEVELOPMENT.md)
 - 🐛 **Issues**: [GitHub Issues](https://github.com/nimbletools/ntcli/issues)
-- 💬 **Community**: [NimbleTools Slack](https://join.slack.com/t/nimblebrain-users/shared_invite/zt-2jpyzxgvl-7_kFJQHyJSmJzWXmYK8cMg)
 - 🌐 **Website**: [nimbletools.ai](https://www.nimbletools.ai)
 
-## License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
+Join our [Discord community](https://www.nimbletools.ai/discord?utm_source=github&utm_medium=readme&utm_campaign=ntcli&utm_content=bottom) to connect with other contributors and maintainers.
