@@ -102,6 +102,13 @@ export class MCPClient {
         headers['mcp-session-id'] = this.sessionId;
       }
 
+      if (process.env.NTCLI_DEBUG) {
+        console.error(`   Request Headers:`);
+        for (const [key, value] of Object.entries(headers)) {
+          console.error(`     ${key}: ${value}`);
+        }
+      }
+
       const response = await fetch(this.baseUrl, {
         method: 'POST',
         headers,
@@ -180,9 +187,7 @@ export class MCPClient {
   private async sendRequest<T extends MCPResponse>(request: MCPRequest): Promise<T> {
     if (process.env.NTCLI_DEBUG) {
       console.error(`🔄 MCP Request: ${request.method}`);
-      if (process.env.NTCLI_DEBUG) {
-        console.error(`   ${JSON.stringify(request, null, 2)}`);
-      }
+      console.error(`   ${JSON.stringify(request, null, 2)}`);
     }
 
     try {
@@ -199,6 +204,13 @@ export class MCPClient {
       // Add session ID if available
       if (this.sessionId) {
         headers['mcp-session-id'] = this.sessionId;
+      }
+
+      if (process.env.NTCLI_DEBUG) {
+        console.error(`   Request Headers:`);
+        for (const [key, value] of Object.entries(headers)) {
+          console.error(`     ${key}: ${value}`);
+        }
       }
 
       const response = await fetch(this.baseUrl, {

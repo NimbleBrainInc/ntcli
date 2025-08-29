@@ -1,84 +1,90 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 /**
- * Authentication-related types for the CLI
+ * Main type exports for the NimbleTools CLI
+ * Combines OpenAPI generated types with custom CLI types
  */
 
-export interface ClerkOAuthConfig {
-  clientId: string;
-  domain: string;
-  redirectUri: string;
-  scopes: string[];
-}
+// Import OpenAPI generated types
+import type { components } from "./api.js";
 
-export interface OAuthTokens {
-  accessToken: string;
-  refreshToken?: string | undefined;
-  idToken?: string | undefined;
-  expiresAt: number;
-  tokenType: string;
-}
+// Re-export authentication types
+export * from "./auth.js";
 
-export interface UserInfo {
-  id: string;
-  email: string;
-  firstName?: string | undefined;
-  lastName?: string | undefined;
-  username?: string | undefined;
-}
+// Re-export MCP protocol types
+export * from "./mcp.js";
 
-export interface AuthState {
-  isAuthenticated: boolean;
-  user?: UserInfo;
-  tokens?: OAuthTokens;
-}
+// Re-export CLI command types
+export * from "./cli.js";
 
-export interface PKCEChallenge {
-  codeVerifier: string;
-  codeChallenge: string;
-  codeChallengeMethod: "S256";
-}
+/**
+ * Core API Types (Generated from OpenAPI)
+ * Use these for new code - they match the API exactly
+ */
 
-export interface OAuthAuthorizationResponse {
-  code: string;
-  state: string;
-}
+// Direct exports of OpenAPI schemas - use these for new code
+export type ApiWorkspaceListResponse =
+  components["schemas"]["WorkspaceListResponse"];
+export type ApiWorkspaceCreateRequest =
+  components["schemas"]["WorkspaceCreateRequest"];
+export type ApiWorkspaceCreateResponse =
+  components["schemas"]["WorkspaceCreateResponse"];
+export type ApiWorkspaceDeleteResponse =
+  components["schemas"]["WorkspaceDeleteResponse"];
+export type ApiWorkspaceDetailsResponse =
+  components["schemas"]["WorkspaceDetailsResponse"];
+export type ApiWorkspaceTokenResponse =
+  components["schemas"]["WorkspaceTokenResponse"];
+export type ApiServerListResponse = components["schemas"]["ServerListResponse"];
+export type ApiServerDeployRequest =
+  components["schemas"]["ServerDeployRequest"];
+export type ApiServerDeployResponse =
+  components["schemas"]["ServerDeployResponse"];
+export type ApiServerDetailsResponse =
+  components["schemas"]["ServerDetailsResponse"];
+export type ApiServerDeleteResponse =
+  components["schemas"]["ServerDeleteResponse"];
+export type ApiServerScaleRequest = components["schemas"]["ServerScaleRequest"];
+export type ApiServerScaleResponse =
+  components["schemas"]["ServerScaleResponse"];
+export type ApiRegistryServersResponse =
+  components["schemas"]["RegistryServersResponse"];
+export type ApiRegistryServerSummary =
+  components["schemas"]["RegistryServerSummary"];
+export type ApiRegistryListResponse =
+  components["schemas"]["RegistryListResponse"];
+export type ApiRegistryEnableRequest =
+  components["schemas"]["RegistryEnableRequest"];
+export type ApiRegistryEnableResponse =
+  components["schemas"]["RegistryEnableResponse"];
+export type ApiRegistry = components["schemas"]["Registry"];
+export type ApiRegistryInfo = components["schemas"]["RegistryInfo"];
+export type ApiWorkspaceSecretsResponse =
+  components["schemas"]["WorkspaceSecretsResponse"];
+export type ApiWorkspaceSecretResponse =
+  components["schemas"]["WorkspaceSecretResponse"];
+export type ApiHealthCheck = components["schemas"]["HealthCheck"];
+export type ApiHTTPValidationError =
+  components["schemas"]["HTTPValidationError"];
+export type ApiValidationError = components["schemas"]["ValidationError"];
 
-export interface ClerkTokenResponse {
-  access_token: string;
-  refresh_token?: string;
-  id_token?: string;
-  expires_in: number;
-  token_type: string;
-}
+/**
+ * Legacy Types (Backward Compatibility)
+ * Keep existing interfaces for backward compatibility with current CLI code
+ */
 
-export interface ClerkUserResponse {
-  id: string;
-  email_addresses: Array<{
-    email_address: string;
-    verification?: {
-      status: string;
+// API Error type (custom - not in OpenAPI spec)
+export interface ApiErrorResponse {
+  error: {
+    code: string;
+    message: string;
+    details?: {
+      field?: string;
+      reason?: string;
+      error_id?: string;
     };
-  }>;
-  first_name?: string;
-  last_name?: string;
-  username?: string;
+  };
 }
-
-export interface LocalServerConfig {
-  port: number;
-  host: string;
-  path: string;
-}
-
-export interface AuthCommandOptions {
-  port?: number;
-  timeout?: number;
-  verbose?: boolean;
-  force?: boolean;
-}
-
-/**
- * NimbleBrain Platform API types
- */
 
 // Workspace API request/response types
 export interface CreateWorkspaceRequest {
@@ -160,63 +166,21 @@ export interface ActivateWorkspaceResponse {
   message: string;
 }
 
-export interface ApiErrorResponse {
-  error: {
-    code: string;
-    message: string;
-    details?: {
-      field?: string;
-      reason?: string;
-      error_id?: string;
-    };
-  };
-}
-
-// Legacy workspace types for backward compatibility
-export interface Workspace {
-  id: string;
-  name: string;
-  description?: string;
-  createdAt: string;
-  updatedAt: string;
-  isActive?: boolean;
-}
-
-export interface CreateWorkspaceOptions {
-  name: string;
-  description?: string;
-}
-
 /**
  * Registry-related types
  */
-export interface RegistryItem {
-  id: string;
-  name: string;
-  description: string;
-  version: string;
-  author: string;
-  tags: string[];
-  repository?: string;
-  homepage?: string;
-  downloadCount?: number;
-  lastUpdated: string;
-}
 
-/**
- * New registry API types
- */
 export interface RegistryServer {
   id: string;
   server_id?: string; // Keep for backward compatibility
   name: string;
   description: string;
-  category: string;
+  category?: string | null;
   ownership?: "community" | "partner";
   ownership_type?: "community" | "partner"; // Keep for backward compatibility
   featured?: boolean;
   version: string;
-  author: string;
+  author?: string;
   license?: string;
   homepage?: string;
   repository?: string;
@@ -228,9 +192,9 @@ export interface RegistryServer {
     resources: boolean | any[];
     prompts: boolean | any[];
   };
-  tools_count: number;
-  resources_count: number;
-  prompts_count: number;
+  tools_count?: number;
+  resources_count?: number;
+  prompts_count?: number;
   deployment?: {
     environment_variables?: Record<string, string>;
     resource_limits?: {
@@ -242,19 +206,27 @@ export interface RegistryServer {
     type?: "github" | "docker" | string; // Optional since not always provided by API
     repository?: string;
     branch?: string; // Add branch field from actual API response
-    path?: string;   // Add path field from actual API response
+    path?: string; // Add path field from actual API response
     docker_image?: string; // Keep for backwards compatibility
-    tag?: string;          // Keep for backwards compatibility
+    tag?: string; // Keep for backwards compatibility
   };
+  image?: string;
+  registry?: string;
+  namespace?: string;
+  tools?: string[];
+  replicas?: { [key: string]: number };
+  tags?: string[];
 }
 
 export interface ListRegistryServersResponse {
   servers: RegistryServer[];
-  user_id: string;
+  user_id?: string;
   total: number;
-  registry_url: string;
-  categories: string[];
-  ownership_types: ("community" | "partner")[];
+  registry_url?: string;
+  categories?: string[];
+  ownership_types?: ("community" | "partner")[];
+  registries?: any[];
+  owner?: string;
 }
 
 export interface GetRegistryServerResponse extends RegistryServer {
@@ -266,41 +238,34 @@ export interface RegistryServerFilters {
 }
 
 /**
- * Command options
- */
-export interface WorkspaceCommandOptions {
-  verbose?: boolean;
-}
-
-export interface RegistryCommandOptions {
-  limit?: number;
-  verbose?: boolean;
-}
-
-/**
  * Workspace server management types
  */
 export interface WorkspaceServer {
-  server_id: string;
+  // Core properties from OpenAPI ServerSummary
+  id: string;
   name: string;
+  workspace_id: string;
+  namespace: string;
+  image: string;
+  status: string;
+  replicas: number;
+  created?: string | null;
+
+  // Additional properties for backward compatibility
+  server_id?: string; // Keep for backward compatibility (maps to id)
   description?: string;
   version?: string;
-  status: "running" | "stopped" | "pending" | "error";
-  image: string;
-  port: number;
-  replicas: number;
-  ready_replicas: number;
+  port?: number;
+  ready_replicas?: number;
   max_replicas?: number;
   cpu_request?: string;
   memory_request?: string;
   cpu_limit?: string;
   memory_limit?: string;
   environment_variables?: Record<string, string>;
-  created: string;
   created_at?: string;
   updated_at?: string;
   last_deployed?: string;
-  namespace: string;
   service_url?: string;
   health_status?: "healthy" | "unhealthy" | "unknown";
 }
@@ -317,14 +282,18 @@ export interface DeployServerRequest {
     min_replicas?: number;
     max_replicas?: number;
   };
+  replicas?: number;
 }
 
 export interface DeployServerResponse {
   message: string;
   server_id: string;
-  name: string;
+  name?: string;
   status: "running" | "stopped" | "pending" | "error";
   workspace_id: string;
+  namespace?: string;
+  mcp_endpoint?: string;
+  health_endpoint?: string;
   deployment_id?: string;
   // Optional additional properties that might be in a full response
   description?: string;
@@ -337,19 +306,25 @@ export interface DeployServerResponse {
   health_status?: "healthy" | "unhealthy" | "unknown";
 }
 
-export interface ListWorkspaceServersResponse {
-  servers: WorkspaceServer[];
-  workspace_id: string;
-  total: number;
-}
+// Type alias that uses the OpenAPI ServerListResponse
+export type ListWorkspaceServersResponse = ApiServerListResponse;
 
+// Server details response that combines OpenAPI structure with backward compatibility
 export interface GetWorkspaceServerResponse {
-  server_id: string;
+  // OpenAPI ServerDetailsResponse structure
+  id: string;
   name: string;
-  replicas: number;
-  ready_replicas: number;
-  status: "running" | "stopped" | "pending" | "error" | "scaling";
-  created: string;
+  workspace_id: string;
+  namespace: string;
+  image: string;
+  spec: { [key: string]: unknown };
+  status: { [key: string]: unknown } | string;
+  created?: string | null;
+
+  // Backward compatibility properties for existing commands
+  server_id?: string; // Fallback to id
+  replicas?: number; // May be in spec or status
+  ready_replicas?: number; // May be in status
 }
 
 export interface ScaleServerRequest {
@@ -362,13 +337,20 @@ export interface ScaleServerRequest {
 }
 
 export interface ScaleServerResponse {
-  server: WorkspaceServer;
-  scaling_operation_id: string;
+  server_id: string;
+  workspace_id: string;
+  replicas: number;
+  status: string;
   message: string;
+  scaling_operation_id?: string;
+  server?: WorkspaceServer;
 }
 
 export interface RemoveServerResponse {
   server_id: string;
+  workspace_id?: string;
+  namespace?: string;
+  status?: string;
   message: string;
 }
 
@@ -391,147 +373,23 @@ export interface ListSecretsResponse {
   workspace_id: string;
   secrets: string[];
   count: number;
+  message?: string;
 }
 
 export interface SetSecretRequest {
-  value: string;
+  secret_value: string;
 }
 
 export interface SetSecretResponse {
   workspace_id: string;
   secret_key: string;
   status: "set";
+  message?: string;
 }
 
 export interface DeleteSecretResponse {
   workspace_id: string;
   secret_key: string;
   status: "deleted";
-}
-
-export interface SecretsCommandOptions {
-  workspace?: string;
-  verbose?: boolean;
-}
-
-// MCP Protocol types
-
-export interface MCPRequest {
-  jsonrpc: "2.0";
-  id: string | number;
-  method: string;
-  params?: any;
-}
-
-export interface MCPResponse {
-  jsonrpc: "2.0";
-  id: string | number;
-  result?: any;
-  error?: {
-    code: number;
-    message: string;
-    data?: any;
-  };
-}
-
-export interface MCPNotification {
-  jsonrpc: "2.0";
-  method: string;
-  params?: any;
-}
-
-export interface MCPInitializeRequest {
-  jsonrpc: "2.0";
-  id: string | number;
-  method: "initialize";
-  params: {
-    protocolVersion: string;
-    capabilities: {
-      tools?: {};
-      resources?: {};
-      prompts?: {};
-    };
-    clientInfo: {
-      name: string;
-      version: string;
-    };
-  };
-}
-
-export interface MCPInitializeResponse {
-  jsonrpc: "2.0";
-  id: string | number;
-  result: {
-    protocolVersion: string;
-    capabilities: {
-      tools?: {
-        listChanged?: boolean;
-      };
-      resources?: {
-        subscribe?: boolean;
-        listChanged?: boolean;
-      };
-      prompts?: {
-        listChanged?: boolean;
-      };
-      logging?: {};
-    };
-    serverInfo: {
-      name: string;
-      version: string;
-    };
-  };
-}
-
-export interface MCPTool {
-  name: string;
-  description?: string;
-  inputSchema: {
-    type: "object";
-    properties?: Record<string, any>;
-    required?: string[];
-  };
-}
-
-export interface MCPToolsListResponse {
-  jsonrpc: "2.0";
-  id: string | number;
-  result: {
-    tools: MCPTool[];
-  };
-}
-
-export interface MCPToolCallRequest {
-  jsonrpc: "2.0";
-  id: string | number;
-  method: "tools/call";
-  params: {
-    name: string;
-    arguments?: Record<string, any>;
-  };
-}
-
-export interface MCPToolCallResponse {
-  jsonrpc: "2.0";
-  id: string | number;
-  result: {
-    content: Array<{
-      type: "text";
-      text: string;
-    }>;
-    isError?: boolean;
-  };
-}
-
-export interface MCPCommandOptions {
-  workspace?: string;
-  verbose?: boolean;
-  timeout?: number;
-}
-
-export interface ServerCommandOptions {
-  verbose?: boolean;
-  workspace?: string;
-  force?: boolean;
-  wait?: boolean;
+  message?: string;
 }

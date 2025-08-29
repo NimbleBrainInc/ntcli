@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import { RegistryCommandOptions } from '../../types/index.js';
-import { NimbleBrainApiClient, ApiError } from '../../lib/api/client.js';
+import { ManagementClient, ManagementApiError } from '../../lib/api/management-client.js';
 
 /**
  * Show detailed information about a registry server
@@ -14,7 +14,7 @@ export async function handleRegistryShow(
   
   try {
     // Initialize API client (registry is public, no auth needed)
-    const apiClient = new NimbleBrainApiClient();
+    const apiClient = new ManagementClient();
     
     // Fetch server details from API
     const server = await apiClient.getRegistryServer(serverId);
@@ -139,7 +139,7 @@ export async function handleRegistryShow(
   } catch (error) {
     spinner.fail('❌ Failed to fetch server details');
     
-    if (error instanceof ApiError) {
+    if (error instanceof ManagementApiError) {
       const userMessage = error.getUserMessage();
       console.error(chalk.red(`   ${userMessage}`));
       

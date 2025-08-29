@@ -3,7 +3,7 @@ import ora from 'ora';
 import readline from 'readline';
 import { ServerCommandOptions } from '../../types/index.js';
 import { TokenManager } from '../../lib/auth/token-manager.js';
-import { NimbleBrainApiClient, ApiError } from '../../lib/api/client.js';
+import { ManagementClient, ManagementApiError } from '../../lib/api/management-client.js';
 import { WorkspaceManager } from '../../lib/workspace/workspace-manager.js';
 
 /**
@@ -28,14 +28,8 @@ export async function handleServerRemove(
 
     const workspaceId = options.workspace || activeWorkspace.workspace_id;
     
-    // Check authentication
+    // Get token manager
     const tokenManager = new TokenManager();
-    const isAuthenticated = await tokenManager.isAuthenticated();
-    if (!isAuthenticated) {
-      console.error(chalk.red('❌ Authentication required'));
-      console.log(chalk.yellow('   Please run `ntcli auth login` first'));
-      process.exit(1);
-    }
 
     // Get authenticated API client for workspace
     const authResult = await workspaceManager.getAuthenticatedClient(workspaceId);
@@ -53,7 +47,7 @@ export async function handleServerRemove(
       const serverResponse = await apiClient.getWorkspaceServer(finalWorkspaceId, serverId);
       serverInfo = serverResponse;
     } catch (error) {
-      if (error instanceof ApiError && error.isNotFoundError()) {
+      if (error instanceof ManagementApiError && error.isNotFoundError()) {
         console.error(chalk.red(`❌ Server '${serverId}' not found in workspace`));
         console.log(chalk.cyan('   💡 Use `ntcli server list` to see deployed servers'));
         process.exit(1);
@@ -68,10 +62,16 @@ export async function handleServerRemove(
       console.log();
       
       if (serverInfo) {
+        const currentReplicas = serverInfo.replicas || (serverInfo.spec as any)?.replicas || (serverInfo.status as any)?.replicas || 'Unknown';
+        const readyReplicas = serverInfo.ready_replicas || (serverInfo.status as any)?.ready_replicas || 'Unknown';
+        const status = typeof serverInfo.status === 'object' ? (serverInfo.status as any)?.phase || 'Unknown' : serverInfo.status;
+        
         console.log(`   ${chalk.gray('Server:')} ${chalk.cyan(serverInfo.name)}`);
-        console.log(`   ${chalk.gray('Status:')} ${serverInfo.status}`);
-        console.log(`   ${chalk.gray('Replicas:')} ${serverInfo.replicas}/${serverInfo.ready_replicas}`);
-        console.log(`   ${chalk.gray('Created:')} ${new Date(serverInfo.created).toLocaleString()}`);
+        console.log(`   ${chalk.gray('Status:')} ${status}`);
+        console.log(`   ${chalk.gray('Replicas:')} ${currentReplicas}/${readyReplicas}`);
+        if (serverInfo.created) {
+          console.log(`   ${chalk.gray('Created:')} ${new Date(serverInfo.created).toLocaleString()}`);
+        }
       } else {
         console.log(`   ${chalk.gray('Server ID:')} ${chalk.cyan(serverId)}`);
       }
@@ -107,9 +107,14 @@ export async function handleServerRemove(
       console.log();
       console.log(chalk.blue.bold('📦 Removed Server Details'));
       console.log(`  ${chalk.gray('Name:')} ${serverInfo.name}`);
-      console.log(`  ${chalk.gray('Server ID:')} ${serverInfo.server_id}`);
-      console.log(`  ${chalk.gray('Last Status:')} ${serverInfo.status}`);
-      console.log(`  ${chalk.gray('Created:')} ${new Date(serverInfo.created).toLocaleString()}`);
+      const serverId = serverInfo.server_id || serverInfo.id;
+      const status = typeof serverInfo.status === 'object' ? (serverInfo.status as any)?.phase || 'Unknown' : serverInfo.status;
+      
+      console.log(`  ${chalk.gray('Server ID:')} ${serverId}`);
+      console.log(`  ${chalk.gray('Last Status:')} ${status}`);
+      if (serverInfo.created) {
+        console.log(`  ${chalk.gray('Created:')} ${new Date(serverInfo.created).toLocaleString()}`);
+      }
     }
     
     console.log();
@@ -125,7 +130,7 @@ export async function handleServerRemove(
     const spinner = ora().start();
     spinner.fail('❌ Failed to remove server');
     
-    if (error instanceof ApiError) {
+    if (error instanceof ManagementApiError) {
       const userMessage = error.getUserMessage();
       console.error(chalk.red(`   ${userMessage}`));
       

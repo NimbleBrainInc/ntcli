@@ -1,6 +1,6 @@
 {
   "name": "@nimbletools/ntcli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Command-line interface for NimbleTools MCP Platform - deploy, manage, and integrate MCP servers",
   "keywords": [
     "mcp",
@@ -19,7 +19,7 @@
     "type": "git",
     "url": "git+https://github.com/nimbletools/ntcli.git"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "author": {
     "name": "NimbleTools",
     "email": "support@nimbletools.ai",
@@ -39,13 +39,24 @@
   ],
   "scripts": {
     "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
     "clean": "rm -rf dist",
+    "generate-types": "openapi-typescript http://api.nimbletools.local/openapi.json --output src/types/api.ts",
     "prepublishOnly": "npm run build",
     "use-node": "nvm use",
     "setup": "nvm use && npm install",
-    "test-cli": "nvm use && node dist/index.js"
+    "test-cli": "nvm use && node dist/index.js",
+    "version:patch": "npm version patch",
+    "version:minor": "npm version minor",
+    "version:major": "npm version major",
+    "version:prerelease": "npm version prerelease",
+    "release:patch": "npm version patch && npm publish",
+    "release:minor": "npm version minor && npm publish",
+    "release:major": "npm version major && npm publish"
   },
   "dependencies": {
     "@types/inquirer": "^9.0.8",
@@ -62,6 +73,10 @@
     "@types/express": "^5.0.3",
     "@types/node": "^24.0.0",
     "@types/uuid": "^10.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "eslint": "^9.34.0",
+    "openapi-typescript": "^7.9.1",
     "typescript": "^5.9.2"
   },
   "engines": {

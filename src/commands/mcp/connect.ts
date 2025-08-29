@@ -2,10 +2,11 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { MCPCommandOptions } from '../../types/index.js';
 import { TokenManager } from '../../lib/auth/token-manager.js';
-import { NimbleBrainApiClient, ApiError } from '../../lib/api/client.js';
+import { ManagementClient, ManagementApiError } from '../../lib/api/management-client.js';
 import { WorkspaceManager } from '../../lib/workspace/workspace-manager.js';
-import { WorkspaceStorage } from '../../lib/workspace-storage.js';
+import { ConfigManager } from '../../lib/config-manager.js';
 import { MCPClient, MCPError } from '../../lib/mcp/client.js';
+import { Config } from '../../lib/config.js';
 
 /**
  * Connect to and initialize an MCP server
@@ -31,25 +32,17 @@ export async function handleMCPConnect(
 
     const workspaceId = options.workspace || activeWorkspace.workspace_id;
     
-    // Check authentication
-    const tokenManager = new TokenManager();
-    const isAuthenticated = await tokenManager.isAuthenticated();
-    if (!isAuthenticated) {
-      spinner.fail('❌ Authentication required');
-      console.log(chalk.yellow('   Please run `ntcli auth login` first'));
-      process.exit(1);
-    }
 
     // Get authenticated API client for workspace
     const authResult = await workspaceManager.getAuthenticatedClient(workspaceId);
     if (!authResult) {
-      spinner.fail('❌ No valid workspace token');
+      spinner.fail('❌ No workspace available');
       console.log(chalk.yellow('   Please create a new workspace with `ntcli workspace create <name>`'));
       process.exit(1);
     }
 
     const { client: apiClient, workspaceId: finalWorkspaceId } = authResult;
-    const workspaceStorage = new WorkspaceStorage();
+    const configManager = new ConfigManager();
     
     // Extract UUID from workspace ID for API calls
     const extractWorkspaceUuid = (workspaceId: string): string => {
@@ -62,7 +55,7 @@ export async function handleMCPConnect(
     
     // Construct MCP endpoint URL
     const workspaceUuid = extractWorkspaceUuid(workspaceId);
-    const mcpEndpoint = `${apiClient.getMcpBaseUrl()}/${workspaceUuid}/${serverId}/mcp`;
+    const mcpEndpoint = `${configManager.getMcpApiUrl()}/${workspaceUuid}/${serverId}/mcp`;
     
     if (process.env.NTCLI_DEBUG) {
       console.error(`🔧 MCP Endpoint: ${mcpEndpoint}`);
@@ -75,14 +68,11 @@ export async function handleMCPConnect(
 
     // Connect to MCP server
     spinner.text = `🔌 Initializing MCP connection...`;
-    // Get workspace token for MCP client
-    const workspaceToken = workspaceStorage.getWorkspaceToken(finalWorkspaceId);
-    if (!workspaceToken) {
-      spinner.fail('❌ No valid workspace token for MCP connection');
-      process.exit(1);
-    }
+    
+    // Get workspace token for MCP client (if available)
+    const workspaceToken = configManager.getWorkspaceToken(finalWorkspaceId);
 
-    const mcpClient = new MCPClient(mcpEndpoint, workspaceToken);
+    const mcpClient = new MCPClient(mcpEndpoint, workspaceToken || undefined);
     
     // Initialize the MCP connection
     const initResponse = await mcpClient.initialize();
@@ -97,7 +87,8 @@ export async function handleMCPConnect(
     console.log(chalk.blue.bold('📡 Server Information'));
     console.log(`  ${chalk.gray('Server ID:')} ${chalk.cyan(serverId)}`);
     console.log(`  ${chalk.gray('Name:')} ${server.name || serverId}`);
-    console.log(`  ${chalk.gray('Status:')} ${getStatusColor(server.status)}${server.status}`);
+    const serverStatus = typeof server.status === 'object' ? (server.status as any)?.phase || 'Unknown' : server.status;
+    console.log(`  ${chalk.gray('Status:')} ${getStatusColor(serverStatus)}${serverStatus}`);
     console.log(`  ${chalk.gray('MCP Endpoint:')} ${chalk.cyan(mcpEndpoint)}`);
     console.log();
     
@@ -172,7 +163,7 @@ export async function handleMCPConnect(
       } else if (error.isErrorCode(-32601)) {
         console.log(chalk.yellow('   💡 The server may not support the MCP initialize method'));
       }
-    } else if (error instanceof ApiError) {
+    } else if (error instanceof ManagementApiError) {
       const userMessage = error.getUserMessage();
       console.error(chalk.red(`   ${userMessage}`));
       

@@ -1,8 +1,8 @@
 import chalk from 'chalk';
 import ora from 'ora';
-import { ApiError, NimbleBrainApiClient } from '../../lib/api/client.js';
+import { ManagementApiError, ManagementClient } from '../../lib/api/management-client.js';
 import { TokenManager } from '../../lib/auth/token-manager.js';
-import { WorkspaceStorage } from '../../lib/workspace-storage.js';
+import { ConfigManager } from '../../lib/config-manager.js';
 import { CreateWorkspaceRequest, WorkspaceCommandOptions } from '../../types/index.js';
 
 /**
@@ -34,25 +34,14 @@ export async function handleWorkspaceCreate(
   try {
     const tokenManager = new TokenManager();
     
-    // Check authentication
-    const isAuthenticated = await tokenManager.isAuthenticated();
-    if (!isAuthenticated) {
-      spinner.fail('❌ Authentication required');
-      console.log(chalk.yellow('   Please run `ntcli auth login` first'));
-      process.exit(1);
-    }
-
-    // Get valid Clerk ID token for workspace creation
+    // Try to get Clerk ID token (if available)
     const clerkIdToken = await tokenManager.getValidClerkIdToken();
-    if (!clerkIdToken) {
-      spinner.fail('❌ Invalid or expired ID token');
-      console.log(chalk.yellow('   Please run `ntcli auth login` to refresh your session'));
-      process.exit(1);
-    }
 
     // Initialize API client
-    const apiClient = new NimbleBrainApiClient();
-    apiClient.setClerkJwtToken(clerkIdToken);
+    const apiClient = new ManagementClient();
+    if (clerkIdToken) {
+      apiClient.setClerkJwtToken(clerkIdToken);
+    }
     
     spinner.text = '🔨 Setting up workspace...';
     
@@ -68,15 +57,15 @@ export async function handleWorkspaceCreate(
     spinner.text = '💾 Saving workspace locally...';
     
     // Save workspace to local storage
-    const workspaceStorage = new WorkspaceStorage();
-    workspaceStorage.addWorkspace(response);
+    const configManager = new ConfigManager();
+    configManager.addWorkspace(response);
     
     // Automatically set as active workspace if it's the first one
-    const workspaceCount = workspaceStorage.getWorkspaceCount();
+    const workspaceCount = configManager.getWorkspaceCount();
     const shouldSetActive = workspaceCount === 1 || options.verbose; // Auto-activate if first workspace
     
     if (shouldSetActive) {
-      workspaceStorage.setActiveWorkspace(response.workspace_id);
+      configManager.setActiveWorkspace(response.workspace_id);
     }
     
     spinner.succeed('✅ Workspace created successfully!');
@@ -98,7 +87,7 @@ export async function handleWorkspaceCreate(
   } catch (error) {
     spinner.fail('❌ Failed to create workspace');
     
-    if (error instanceof ApiError) {
+    if (error instanceof ManagementApiError) {
       // Handle specific API errors
       const userMessage = error.getUserMessage();
       console.error(chalk.red(`   ${userMessage}`));

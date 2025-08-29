@@ -38,7 +38,11 @@ import { handleWorkspaceList } from "./commands/workspace/list.js";
 import { handleWorkspaceSelect } from "./commands/workspace/select.js";
 import { handleWorkspaceSwitch } from "./commands/workspace/switch.js";
 import { handleWorkspaceSync } from "./commands/workspace/sync.js";
-import { handleWorkspaceDebug } from "./commands/workspace/debug.js";
+import { handleConfigReset } from "./commands/config/reset.js";
+import { handleConfigShow } from "./commands/config/show.js";
+import { handleDomainSet } from "./commands/domain/set.js";
+import { handleDomainShow } from "./commands/domain/show.js";
+import { handleInfo } from "./commands/info.js";
 
 /**
  * Main CLI application entry point
@@ -53,6 +57,27 @@ async function main() {
     .option("--debug", "Show detailed HTTP debugging (headers, body, errors)")
     .configureOutput({
       writeErr: (str) => process.stderr.write(chalk.red(str)),
+    });
+
+  // Info command
+  program
+    .command("info")
+    .description("Show platform information and resources")
+    .option("--discord", "Open Discord community")
+    .option("--docs", "Open documentation")
+    .option("-v, --verbose", "Show detailed configuration")
+    .action(async (options) => {
+      try {
+        await handleInfo(options);
+      } catch (error) {
+        console.error(
+          chalk.red(
+            "Info command failed:",
+            error instanceof Error ? error.message : "Unknown error"
+          )
+        );
+        process.exit(1);
+      }
     });
 
   // Auth command group
@@ -292,24 +317,6 @@ async function main() {
       }
     });
 
-  // Workspace debug command (hidden/development)
-  workspaceCommand
-    .command("debug")
-    .description("Debug workspace storage files")
-    .option("-v, --verbose", "Show full file contents")
-    .action(async (options) => {
-      try {
-        await handleWorkspaceDebug(options);
-      } catch (error) {
-        console.error(
-          chalk.red(
-            "Workspace debug failed:",
-            error instanceof Error ? error.message : "Unknown error"
-          )
-        );
-        process.exit(1);
-      }
-    });
 
   // Registry command group
   const registryCommand = program
@@ -859,6 +866,95 @@ async function main() {
         console.error(
           chalk.red(
             "Token list failed:",
+            error instanceof Error ? error.message : "Unknown error"
+          )
+        );
+        process.exit(1);
+      }
+    });
+
+  // Config command group
+  const configCommand = program
+    .command("config")
+    .description("Configuration management commands");
+
+  // Config show command
+  configCommand
+    .command("show")
+    .description("Show current configuration file contents")
+    .option("-v, --verbose", "Show detailed output including raw content on errors")
+    .action(async (options) => {
+      try {
+        await handleConfigShow(options);
+      } catch (error) {
+        console.error(
+          chalk.red(
+            "Config show failed:",
+            error instanceof Error ? error.message : "Unknown error"
+          )
+        );
+        process.exit(1);
+      }
+    });
+
+  // Config reset command
+  configCommand
+    .command("reset")
+    .alias("clear")
+    .description("Reset all local configuration (delete ~/.ntcli)")
+    .option("-f, --force", "Skip confirmation prompt")
+    .option("-v, --verbose", "Show detailed output")
+    .action(async (options) => {
+      try {
+        await handleConfigReset(options);
+      } catch (error) {
+        console.error(
+          chalk.red(
+            "Config reset failed:",
+            error instanceof Error ? error.message : "Unknown error"
+          )
+        );
+        process.exit(1);
+      }
+    });
+
+  // Domain command group
+  const domainCommand = program
+    .command("domain")
+    .description("Domain configuration management");
+
+  // Domain set command
+  domainCommand
+    .command("set <domain>")
+    .description("Set the domain for all API endpoints")
+    .option("-v, --verbose", "Show detailed endpoint information")
+    .option("--insecure", "Use HTTP instead of HTTPS")
+    .action(async (domain, options) => {
+      try {
+        await handleDomainSet(domain, options);
+      } catch (error) {
+        console.error(
+          chalk.red(
+            "Domain set failed:",
+            error instanceof Error ? error.message : "Unknown error"
+          )
+        );
+        process.exit(1);
+      }
+    });
+
+  // Domain show command
+  domainCommand
+    .command("show")
+    .description("Show current domain configuration")
+    .option("-v, --verbose", "Show detailed endpoint information")
+    .action(async (options) => {
+      try {
+        await handleDomainShow(options);
+      } catch (error) {
+        console.error(
+          chalk.red(
+            "Domain show failed:",
             error instanceof Error ? error.message : "Unknown error"
           )
         );

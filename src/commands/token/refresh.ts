@@ -2,8 +2,8 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { TokenManager } from '../../lib/auth/token-manager.js';
 import { WorkspaceManager } from '../../lib/workspace/workspace-manager.js';
-import { NimbleBrainApiClient, ApiError } from '../../lib/api/client.js';
-import { WorkspaceStorage } from '../../lib/workspace-storage.js';
+import { ManagementClient, ManagementApiError } from '../../lib/api/management-client.js';
+import { ConfigManager } from '../../lib/config-manager.js';
 import { WorkspaceInfo } from '../../types/index.js';
 
 /**
@@ -21,24 +21,13 @@ export async function handleTokenRefresh(
   try {
     // Get workspace to refresh token for
     const workspaceManager = new WorkspaceManager();
-    const workspaceStorage = new WorkspaceStorage();
+    const configManager = new ConfigManager();
     
-    // Check if we have valid Clerk authentication first
+    // Get token manager
     const tokenManager = new TokenManager();
-    const isAuthenticated = await tokenManager.isAuthenticated();
-    if (!isAuthenticated) {
-      console.error(chalk.red('❌ Not authenticated with Clerk'));
-      console.log(chalk.yellow('   Please run `ntcli auth login` first'));
-      process.exit(1);
-    }
 
-    // Get valid Clerk JWT token (we need the ID token for the API call)
+    // Try to get valid Clerk JWT token (we need the ID token for the API call)
     const clerkIdToken = await tokenManager.getValidClerkIdToken();
-    if (!clerkIdToken) {
-      console.error(chalk.red('❌ No valid Clerk ID token'));
-      console.log(chalk.yellow('   Please run `ntcli auth login` to refresh your Clerk session'));
-      process.exit(1);
-    }
 
     let targetWorkspace;
     let serverWorkspaceInfo: WorkspaceInfo | null = null;
@@ -46,16 +35,18 @@ export async function handleTokenRefresh(
     
     if (workspaceIdentifier) {
       // Use specified workspace - first try locally
-      targetWorkspace = workspaceStorage.getWorkspaceByName(workspaceIdentifier) || 
-                       workspaceStorage.getWorkspace(workspaceIdentifier);
+      targetWorkspace = configManager.getWorkspaceByName(workspaceIdentifier) || 
+                       configManager.getWorkspace(workspaceIdentifier);
       
       if (!targetWorkspace) {
         // Not found locally, check the server
         console.log(chalk.yellow(`   Workspace '${workspaceIdentifier}' not found locally, checking server...`));
         
         // Initialize API client with Clerk ID token
-        const apiClient = new NimbleBrainApiClient();
-        apiClient.setClerkJwtToken(clerkIdToken);
+        const apiClient = new ManagementClient();
+        if (clerkIdToken) {
+          apiClient.setClerkJwtToken(clerkIdToken);
+        }
         
         try {
           // Fetch workspaces from server
@@ -108,7 +99,7 @@ export async function handleTokenRefresh(
 
     // Show warning if existing token exists
     if (targetWorkspace.access_token) {
-      const tokenInfo = workspaceStorage.getTokenExpirationInfo(targetWorkspace.workspace_id);
+      const tokenInfo = configManager.getTokenExpirationInfo(targetWorkspace.workspace_id);
       if (tokenInfo && !tokenInfo.isExpired) {
         spinner.stop();
         console.log();
@@ -128,8 +119,10 @@ export async function handleTokenRefresh(
     }
 
     // Initialize API client with Clerk ID token
-    const apiClient = new NimbleBrainApiClient();
-    apiClient.setClerkJwtToken(clerkIdToken);
+    const apiClient = new ManagementClient();
+    if (clerkIdToken) {
+      apiClient.setClerkJwtToken(clerkIdToken);
+    }
     
     // Prepare token options
     const tokenOptions: { expires_in?: number; expires_at?: number } = {};
@@ -184,10 +177,10 @@ export async function handleTokenRefresh(
         ...(refreshResponse.jti && { jti: refreshResponse.jti })
       };
       
-      workspaceStorage.addWorkspace(createWorkspaceResponse);
+      configManager.addWorkspace(createWorkspaceResponse);
     } else {
       // Update existing local workspace
-      const updateSuccess = workspaceStorage.updateWorkspaceToken(
+      const updateSuccess = configManager.updateWorkspaceToken(
         targetWorkspace.workspace_id,
         refreshResponse.access_token,
         refreshResponse.token_type,
@@ -210,7 +203,7 @@ export async function handleTokenRefresh(
     console.log();
     console.log(`${chalk.gray('Workspace:')} ${targetWorkspace.workspace_name} (${targetWorkspace.workspace_id})`);
     
-    const newTokenInfo = workspaceStorage.getTokenExpirationInfo(targetWorkspace.workspace_id);
+    const newTokenInfo = configManager.getTokenExpirationInfo(targetWorkspace.workspace_id);
     if (newTokenInfo) {
       console.log(`${chalk.gray('Token expires:')} ${newTokenInfo.expiresAt.toLocaleString()}`);
       console.log(`${chalk.gray('Valid for:')} ${newTokenInfo.minutesRemaining} minutes`);
@@ -235,7 +228,7 @@ export async function handleTokenRefresh(
   } catch (error) {
     console.error(chalk.red('❌ Failed to refresh workspace token'));
     
-    if (error instanceof ApiError) {
+    if (error instanceof ManagementApiError) {
       const userMessage = error.getUserMessage();
       console.error(chalk.red(`   ${userMessage}`));
       

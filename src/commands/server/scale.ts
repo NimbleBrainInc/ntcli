@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { ServerCommandOptions, ScaleServerRequest } from '../../types/index.js';
 import { TokenManager } from '../../lib/auth/token-manager.js';
-import { NimbleBrainApiClient, ApiError } from '../../lib/api/client.js';
+import { ManagementClient, ManagementApiError } from '../../lib/api/management-client.js';
 import { WorkspaceManager } from '../../lib/workspace/workspace-manager.js';
 
 /**
@@ -46,14 +46,8 @@ export async function handleServerScale(
 
     const workspaceId = options.workspace || activeWorkspace.workspace_id;
     
-    // Check authentication
+    // Get token manager
     const tokenManager = new TokenManager();
-    const isAuthenticated = await tokenManager.isAuthenticated();
-    if (!isAuthenticated) {
-      spinner.fail('❌ Authentication required');
-      console.log(chalk.yellow('   Please run `ntcli auth login` first'));
-      process.exit(1);
-    }
 
     // Get authenticated API client for workspace
     const authResult = await workspaceManager.getAuthenticatedClient(workspaceId);
@@ -73,7 +67,7 @@ export async function handleServerScale(
     // Scale server
     const response = await apiClient.scaleServer(finalWorkspaceId, serverId, scaleRequest);
     const server = response.server || response;
-    const serverName = server.name || server.server_id || serverId;
+    const serverName = (response.server?.name) || response.server_id || serverId;
     
     spinner.succeed(`⚡ Server scaled: ${serverName}`);
     
@@ -90,32 +84,32 @@ export async function handleServerScale(
     // Current server status
     console.log(chalk.blue.bold('📦 Current Status'));
     console.log(`  ${chalk.gray('Server:')} ${serverName}`);
-    if (server.version) {
-      console.log(`  ${chalk.gray('Version:')} ${server.version}`);
+    if (response.server?.version) {
+      console.log(`  ${chalk.gray('Version:')} ${response.server.version}`);
     }
     if (server.status) {
       console.log(`  ${chalk.gray('Status:')} ${getStatusColor(server.status)}${server.status}${chalk.reset()}`);
     }
     
     const currentReplicas = server.replicas || 'N/A';
-    const maxReplicas = server.max_replicas || 4; // Default max is 4
+    const maxReplicas = response.server?.max_replicas || 4; // Default max is 4
     console.log(`  ${chalk.gray('Current Replicas:')} ${currentReplicas} ${chalk.dim('(max: ' + maxReplicas + ')')}`);
     
-    if (server.cpu_request) {
-      console.log(`  ${chalk.gray('CPU Request:')} ${server.cpu_request}`);
+    if (response.server?.cpu_request) {
+      console.log(`  ${chalk.gray('CPU Request:')} ${response.server.cpu_request}`);
     }
-    if (server.cpu_limit) {
-      console.log(`  ${chalk.gray('CPU Limit:')} ${server.cpu_limit}`);
+    if (response.server?.cpu_limit) {
+      console.log(`  ${chalk.gray('CPU Limit:')} ${response.server.cpu_limit}`);
     }
-    if (server.memory_request) {
-      console.log(`  ${chalk.gray('Memory Request:')} ${server.memory_request}`);
+    if (response.server?.memory_request) {
+      console.log(`  ${chalk.gray('Memory Request:')} ${response.server.memory_request}`);
     }
-    if (server.memory_limit) {
-      console.log(`  ${chalk.gray('Memory Limit:')} ${server.memory_limit}`);
+    if (response.server?.memory_limit) {
+      console.log(`  ${chalk.gray('Memory Limit:')} ${response.server.memory_limit}`);
     }
     
-    if (server.service_url) {
-      console.log(`  ${chalk.gray('Service URL:')} ${chalk.cyan(server.service_url)}`);
+    if (response.server?.service_url) {
+      console.log(`  ${chalk.gray('Service URL:')} ${chalk.cyan(response.server.service_url)}`);
     }
     
     console.log();
@@ -136,7 +130,7 @@ export async function handleServerScale(
   } catch (error) {
     spinner.fail('❌ Failed to scale server');
     
-    if (error instanceof ApiError) {
+    if (error instanceof ManagementApiError) {
       const userMessage = error.getUserMessage();
       console.error(chalk.red(`   ${userMessage}`));
       

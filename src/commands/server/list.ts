@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { ServerCommandOptions } from '../../types/index.js';
 import { TokenManager } from '../../lib/auth/token-manager.js';
-import { NimbleBrainApiClient, ApiError } from '../../lib/api/client.js';
+import { ManagementClient, ManagementApiError } from '../../lib/api/management-client.js';
 import { WorkspaceManager } from '../../lib/workspace/workspace-manager.js';
 
 /**
@@ -65,37 +65,37 @@ export async function handleServerList(
       // Detailed view
       for (const server of servers) {
         const statusIcon = getStatusIcon(server.status);
-        const healthIcon = getHealthIcon(server.health_status);
+        const serverId = server.id || (server as any).server_id;
         
-        console.log(`${statusIcon}${chalk.cyan.bold(server.name)} ${chalk.gray('v' + (server.version || 'latest'))}`);
-        console.log(`  ${chalk.gray('ID:')} ${server.server_id}`);
+        console.log(`${statusIcon}${chalk.cyan.bold(server.name)}`);
+        console.log(`  ${chalk.gray('ID:')} ${serverId}`);
         console.log(`  ${chalk.gray('Status:')} ${getStatusColor(server.status)}${server.status}${chalk.reset()}`);
-        console.log(`  ${chalk.gray('Health:')} ${healthIcon}${server.health_status || 'unknown'}`);
         console.log(`  ${chalk.gray('Image:')} ${server.image || 'N/A'}`);
-        console.log(`  ${chalk.gray('Replicas:')} ${server.ready_replicas}/${server.replicas}`);
-        console.log(`  ${chalk.gray('Port:')} ${server.port}`);
+        console.log(`  ${chalk.gray('Replicas:')} ${server.replicas || 'N/A'}`);
         console.log(`  ${chalk.gray('Namespace:')} ${server.namespace}`);
-        console.log(`  ${chalk.gray('Created:')} ${new Date(server.created).toLocaleString()}`);
+        if (server.created) {
+          console.log(`  ${chalk.gray('Created:')} ${new Date(server.created).toLocaleString()}`);
+        }
         console.log();
       }
     } else {
       // Compact view
       console.log(chalk.gray('NAME').padEnd(25) + 
-                  chalk.gray('STATUS').padEnd(12) + 
+                  chalk.gray('STATUS').padEnd(15) + 
                   chalk.gray('REPLICAS').padEnd(12) + 
-                  chalk.gray('VERSION').padEnd(12) + 
+                  chalk.gray('IMAGE').padEnd(20) + 
                   chalk.gray('CREATED'));
       console.log(chalk.gray('─'.repeat(80)));
       
       for (const server of servers) {
         const statusIcon = getStatusIcon(server.status);
         const name = server.name.substring(0, 22);
-        const status = `${statusIcon}${server.status}`.padEnd(12);
-        const replicas = `${server.ready_replicas}/${server.replicas}`.padEnd(12);
-        const version = `v${server.version || 'latest'}`.substring(0, 10).padEnd(12);
-        const created = new Date(server.created).toLocaleDateString();
+        const status = `${statusIcon}${server.status}`.padEnd(15);
+        const replicas = `${server.replicas || 'N/A'}`.padEnd(12);
+        const image = `${server.image || 'N/A'}`.substring(0, 18).padEnd(20);
+        const created = server.created ? new Date(server.created).toLocaleDateString() : 'N/A';
         
-        console.log(`${name.padEnd(25)}${status}${replicas}${version}${created}`);
+        console.log(`${name.padEnd(25)}${status}${replicas}${image}${created}`);
       }
     }
     
@@ -108,7 +108,7 @@ export async function handleServerList(
   } catch (error) {
     spinner.fail('❌ Failed to fetch servers');
     
-    if (error instanceof ApiError) {
+    if (error instanceof ManagementApiError) {
       const userMessage = error.getUserMessage();
       console.error(chalk.red(`   ${userMessage}`));
       
@@ -137,7 +137,10 @@ export async function handleServerList(
  * Get status icon for server status
  */
 function getStatusIcon(status: string): string {
-  switch (status) {
+  // Normalize status (trim whitespace and convert to lowercase)
+  const normalizedStatus = status?.toString().trim().toLowerCase();
+  
+  switch (normalizedStatus) {
     case 'running':
       return '🟢 ';
     case 'pending':
@@ -145,8 +148,15 @@ function getStatusIcon(status: string): string {
     case 'stopped':
       return '⚪ ';
     case 'error':
+    case 'failed':
       return '🔴 ';
+    case 'scaling':
+      return '⚡ ';
     default:
+      // For debugging: log unknown status
+      if (process.env.NTCLI_DEBUG) {
+        console.error(`[DEBUG] Unknown server status: "${status}" (normalized: "${normalizedStatus}")`);
+      }
       return '❓ ';
   }
 }
@@ -170,7 +180,10 @@ function getHealthIcon(health?: string): string {
  * Get colored status indicator
  */
 function getStatusColor(status: string): string {
-  switch (status) {
+  // Normalize status (trim whitespace and convert to lowercase)
+  const normalizedStatus = status?.toString().trim().toLowerCase();
+  
+  switch (normalizedStatus) {
     case 'running':
       return chalk.green('');
     case 'pending':
@@ -178,7 +191,10 @@ function getStatusColor(status: string): string {
     case 'stopped':
       return chalk.gray('');
     case 'error':
+    case 'failed':
       return chalk.red('');
+    case 'scaling':
+      return chalk.cyan('');
     default:
       return chalk.gray('');
   }

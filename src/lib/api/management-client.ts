@@ -22,10 +22,11 @@ import {
   ServerLogsResponse,
   SetSecretRequest,
   SetSecretResponse,
-  UpdateWorkspaceRequest,
-  UpdateWorkspaceResponse,
   WorkspaceDetails,
+  AuthProvider,
 } from "../../types/index.js";
+import { AuthProviderFactory } from "../auth/auth-provider.js";
+import { ConfigManager } from "../config-manager.js";
 
 /**
  * HTTP client for NimbleTools Management API (api.nimbletools.dev)
@@ -34,6 +35,7 @@ import {
 export class ManagementClient {
   private baseUrl: string;
   private defaultHeaders: Record<string, string>;
+  private authProvider: AuthProvider;
 
   /**
    * Extract UUID from workspace ID
@@ -59,13 +61,28 @@ export class ManagementClient {
   }
 
   constructor(
-    baseUrl: string = process.env.NTCLI_MANAGEMENT_API_URL || "https://api.nimbletools.dev"
+    baseUrl?: string,
+    authProvider?: AuthProvider
   ) {
-    this.baseUrl = baseUrl;
+    // Use provided baseUrl, or get from config, or fall back to default
+    if (baseUrl) {
+      this.baseUrl = baseUrl;
+    } else {
+      const configManager = new ConfigManager();
+      this.baseUrl = configManager.getManagementApiUrl();
+    }
+    
     this.defaultHeaders = {
       "Content-Type": "application/json",
       "User-Agent": "ntcli/1.0.0",
     };
+    
+    // Use provided auth provider or create a simple one
+    if (authProvider) {
+      this.authProvider = authProvider;
+    } else {
+      this.authProvider = AuthProviderFactory.createProvider();
+    }
   }
 
   /**
@@ -79,21 +96,21 @@ export class ManagementClient {
    * Set Clerk JWT token for workspace operations that require Clerk auth
    */
   setClerkJwtToken(token: string): void {
-    this.defaultHeaders["Authorization"] = `Bearer ${token}`;
+    this.authProvider.setToken(token);
   }
 
   /**
    * Set workspace token for operations that require workspace auth
    */
   setWorkspaceToken(token: string): void {
-    this.defaultHeaders["Authorization"] = `Bearer ${token}`;
+    this.authProvider.setToken(token);
   }
 
   /**
    * Clear authentication headers
    */
   clearAuth(): void {
-    delete this.defaultHeaders["Authorization"];
+    this.authProvider.clearAuth();
   }
 
   /**
@@ -106,7 +123,8 @@ export class ManagementClient {
     customHeaders?: Record<string, string>
   ): Promise<T> {
     const url = `${this.baseUrl}${path}`;
-    const headers = { ...this.defaultHeaders, ...customHeaders };
+    const authHeaders = this.authProvider.getAuthHeaders();
+    const headers = { ...this.defaultHeaders, ...authHeaders, ...customHeaders };
 
     try {
       const fetchOptions: RequestInit = {
@@ -139,7 +157,10 @@ export class ManagementClient {
         if (response.ok) {
           return {} as T;
         } else {
-          throw new ManagementApiError("Empty response from server", response.status);
+          throw new ManagementApiError(
+            "Empty response from server",
+            response.status
+          );
         }
       }
 
@@ -151,18 +172,29 @@ export class ManagementClient {
           // If response is OK but not JSON, return the text as data
           return responseText as unknown as T;
         } else {
-          throw new ManagementApiError(`Invalid JSON response: ${responseText}`, response.status);
+          throw new ManagementApiError(
+            `Invalid JSON response: ${responseText}`,
+            response.status
+          );
         }
       }
 
       if (!response.ok) {
         // Try to extract error information from response
         const errorResponse = responseData as ApiErrorResponse;
-        const errorMessage = errorResponse?.error?.message || responseText || `HTTP ${response.status}`;
-        const errorCode = errorResponse?.error?.code || 'UNKNOWN_ERROR';
+        const errorMessage =
+          errorResponse?.error?.message ||
+          responseText ||
+          `HTTP ${response.status}`;
+        const errorCode = errorResponse?.error?.code || "UNKNOWN_ERROR";
         const errorDetails = errorResponse?.error?.details;
 
-        throw new ManagementApiError(errorMessage, response.status, errorCode, errorDetails);
+        throw new ManagementApiError(
+          errorMessage,
+          response.status,
+          errorCode,
+          errorDetails
+        );
       }
 
       return responseData;
@@ -172,14 +204,18 @@ export class ManagementClient {
       }
 
       // Handle network errors, timeout, etc.
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        throw new ManagementApiError("Network error - unable to connect to the API", 0, 'NETWORK_ERROR');
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new ManagementApiError(
+          "Network error - unable to connect to the API",
+          0,
+          "NETWORK_ERROR"
+        );
       }
 
       throw new ManagementApiError(
         error instanceof Error ? error.message : "Unknown error occurred",
         0,
-        'UNKNOWN_ERROR'
+        "UNKNOWN_ERROR"
       );
     }
   }
@@ -203,10 +239,7 @@ export class ManagementClient {
    * List user workspaces
    */
   async listWorkspaces(): Promise<ListWorkspacesResponse> {
-    return this.makeRequest<ListWorkspacesResponse>(
-      "GET",
-      "/v1/workspaces"
-    );
+    return this.makeRequest<ListWorkspacesResponse>("GET", "/v1/workspaces");
   }
 
   /**
@@ -214,10 +247,7 @@ export class ManagementClient {
    */
   async getWorkspace(workspaceId: string): Promise<WorkspaceDetails> {
     const uuid = this.extractWorkspaceUuid(workspaceId);
-    return this.makeRequest<WorkspaceDetails>(
-      "GET",
-      `/v1/workspaces/${uuid}`
-    );
+    return this.makeRequest<WorkspaceDetails>("GET", `/v1/workspaces/${uuid}`);
   }
 
   /**
@@ -491,9 +521,14 @@ export class ManagementApiError extends Error {
   public errorCode?: string;
   public details?: any;
 
-  constructor(message: string, statusCode: number, errorCode?: string, details?: any) {
+  constructor(
+    message: string,
+    statusCode: number,
+    errorCode?: string,
+    details?: any
+  ) {
     super(message);
-    this.name = 'ManagementApiError';
+    this.name = "ManagementApiError";
     this.statusCode = statusCode;
     if (errorCode !== undefined) this.errorCode = errorCode;
     if (details !== undefined) this.details = details;
@@ -503,23 +538,25 @@ export class ManagementApiError extends Error {
    * Check if error is an authentication error
    */
   isAuthError(): boolean {
-    return this.statusCode === 401 || 
-           this.errorCode === 'TOKEN_EXPIRED' ||
-           this.errorCode === 'AUTHENTICATION_REQUIRED';
+    return (
+      this.statusCode === 401 ||
+      this.errorCode === "TOKEN_EXPIRED" ||
+      this.errorCode === "AUTHENTICATION_REQUIRED"
+    );
   }
 
   /**
    * Check if error is a not found error
    */
   isNotFoundError(): boolean {
-    return this.statusCode === 404 || this.errorCode === 'WORKSPACE_NOT_FOUND';
+    return this.statusCode === 404 || this.errorCode === "WORKSPACE_NOT_FOUND";
   }
 
   /**
    * Check if error is a validation error
    */
   isValidationError(): boolean {
-    return this.statusCode === 400 || this.errorCode === 'INVALID_REQUEST';
+    return this.statusCode === 400 || this.errorCode === "INVALID_REQUEST";
   }
 
   /**
@@ -558,7 +595,7 @@ export class ManagementApiError extends Error {
         if (this.statusCode === 401) {
           return "Authentication failed - please refresh your workspace token using `ntcli token refresh`";
         } else if (this.statusCode === 404) {
-          return this.message.includes('404 Not Found') 
+          return this.message.includes("404 Not Found")
             ? "API endpoint not found - this may be a server configuration issue"
             : this.message;
         } else if (this.statusCode >= 500) {

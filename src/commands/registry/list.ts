@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import { RegistryCommandOptions, RegistryServer, RegistryServerFilters } from '../../types/index.js';
-import { NimbleBrainApiClient, ApiError } from '../../lib/api/client.js';
+import { ManagementClient, ManagementApiError } from '../../lib/api/management-client.js';
 import { TokenManager } from '../../lib/auth/token-manager.js';
 
 /**
@@ -15,15 +15,12 @@ export async function handleRegistryList(
   try {
     // Initialize API client with authentication
     const tokenManager = new TokenManager();
-    const apiClient = new NimbleBrainApiClient();
+    const apiClient = new ManagementClient();
     
-    // Check authentication and set JWT token
-    const isAuthenticated = await tokenManager.isAuthenticated();
-    if (isAuthenticated) {
-      const clerkIdToken = await tokenManager.getValidClerkIdToken();
-      if (clerkIdToken) {
-        apiClient.setClerkJwtToken(clerkIdToken);
-      }
+    // Try to get JWT token if available
+    const clerkIdToken = await tokenManager.getValidClerkIdToken();
+    if (clerkIdToken) {
+      apiClient.setClerkJwtToken(clerkIdToken);
     }
     
     spinner.text = '🔍 Searching registry...';
@@ -66,13 +63,13 @@ export async function handleRegistryList(
       
       // Capabilities
       const capabilities = [];
-      if (server.tools_count > 0) {
+      if (server.tools_count && server.tools_count > 0) {
         capabilities.push(`${server.tools_count} tools`);
       }
-      if (server.resources_count > 0) {
+      if (server.resources_count && server.resources_count > 0) {
         capabilities.push(`${server.resources_count} resources`);
       }
-      if (server.prompts_count > 0) {
+      if (server.prompts_count && server.prompts_count > 0) {
         capabilities.push(`${server.prompts_count} prompts`);
       }
       if (capabilities.length > 0) {
@@ -135,7 +132,7 @@ export async function handleRegistryList(
   } catch (error) {
     spinner.fail('❌ Failed to fetch registry servers');
     
-    if (error instanceof ApiError) {
+    if (error instanceof ManagementApiError) {
       const userMessage = error.getUserMessage();
       console.error(chalk.red(`   ${userMessage}`));
       

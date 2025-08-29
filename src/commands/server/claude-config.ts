@@ -2,9 +2,9 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { ServerCommandOptions } from '../../types/index.js';
 import { TokenManager } from '../../lib/auth/token-manager.js';
-import { NimbleBrainApiClient, ApiError } from '../../lib/api/client.js';
+import { ManagementClient, ManagementApiError } from '../../lib/api/management-client.js';
 import { WorkspaceManager } from '../../lib/workspace/workspace-manager.js';
-import { WorkspaceStorage } from '../../lib/workspace-storage.js';
+import { ConfigManager } from '../../lib/config-manager.js';
 
 /**
  * Generate Claude Desktop MCP configuration for a server
@@ -33,14 +33,8 @@ export async function handleServerClaudeConfig(
 
     const workspaceId = options.workspace || activeWorkspace.workspace_id;
     
-    // Check authentication
+    // Get token manager
     const tokenManager = new TokenManager();
-    const isAuthenticated = await tokenManager.isAuthenticated();
-    if (!isAuthenticated) {
-      spinner.fail('❌ Authentication required');
-      console.log(chalk.yellow('   Please run `ntcli auth login` first'));
-      process.exit(1);
-    }
 
     // Get authenticated API client for workspace
     const authResult = await workspaceManager.getAuthenticatedClient(workspaceId);
@@ -51,14 +45,13 @@ export async function handleServerClaudeConfig(
     }
 
     const { client: apiClient, workspaceId: finalWorkspaceId } = authResult;
-    const workspaceStorage = new WorkspaceStorage();
     
     // Get server details to verify it exists
     spinner.text = `🔍 Checking server ${serverId}...`;
     try {
       await apiClient.getWorkspaceServer(finalWorkspaceId, serverId);
     } catch (error) {
-      if (error instanceof ApiError && error.isNotFoundError()) {
+      if (error instanceof ManagementApiError && error.isNotFoundError()) {
         spinner.fail('❌ Server not found');
         console.log(chalk.red(`   Server '${serverId}' not found in workspace`));
         console.log(chalk.cyan('   💡 Use `ntcli server list` to see deployed servers'));
@@ -77,7 +70,8 @@ export async function handleServerClaudeConfig(
     };
     
     // Get workspace token
-    const workspace = workspaceStorage.getWorkspace(finalWorkspaceId);
+    const configManagerForToken = new ConfigManager();
+    const workspace = configManagerForToken.getWorkspace(finalWorkspaceId);
     if (!workspace || !workspace.access_token) {
       spinner.fail('❌ No workspace token available');
       console.log(chalk.yellow('   Please refresh your workspace token:'));
@@ -87,7 +81,8 @@ export async function handleServerClaudeConfig(
     
     // Construct MCP endpoint URL
     const workspaceUuid = extractWorkspaceUuid(finalWorkspaceId);
-    const mcpEndpoint = `${apiClient.getMcpBaseUrl()}/${workspaceUuid}/${serverId}/mcp`;
+    const configManager = new ConfigManager();
+    const mcpEndpoint = `${configManager.getMcpApiUrl()}/${workspaceUuid}/${serverId}/mcp`;
     
     // Build args array - use npx with @nimbletools/mcp-http-bridge package
     const args = [
@@ -150,7 +145,7 @@ export async function handleServerClaudeConfig(
   } catch (error) {
     spinner.fail('❌ Failed to generate Claude Desktop config');
     
-    if (error instanceof ApiError) {
+    if (error instanceof ManagementApiError) {
       const userMessage = error.getUserMessage();
       console.error(chalk.red(`   ${userMessage}`));
       

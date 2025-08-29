@@ -24,6 +24,8 @@ npm run dev
 
 ## Environment Variables
 
+### Development/Testing Environment
+
 For development/testing environments with self-signed certificates:
 
 ```bash
@@ -39,31 +41,36 @@ export NODE_TLS_REJECT_UNAUTHORIZED=0
 Here are example commands for testing MCP functionality with the echo server:
 
 **Basic message:**
+
 ```bash
 NODE_TLS_REJECT_UNAUTHORIZED=0 ntcli mcp call echo echo_message message="Hello World"
 ```
 
 **With uppercase formatting:**
+
 ```bash
 NODE_TLS_REJECT_UNAUTHORIZED=0 ntcli mcp call echo echo_message message="Hello World" uppercase=true
 ```
 
 **Using JSON format:**
+
 ```bash
 NODE_TLS_REJECT_UNAUTHORIZED=0 ntcli mcp call echo echo_message --json '{"message": "Hello World", "uppercase": true}'
 ```
 
 **Using --arg flags:**
+
 ```bash
 NODE_TLS_REJECT_UNAUTHORIZED=0 ntcli mcp call echo echo_message --arg message="Hello World" --arg uppercase=true
 ```
 
 **Finnhub (Stock Market Data):**
+
 ```bash
 # Get stock quote
 NODE_TLS_REJECT_UNAUTHORIZED=0 ntcli mcp call finnhub get_quote --arg symbol=AAPL
 
-# Get company profile  
+# Get company profile
 NODE_TLS_REJECT_UNAUTHORIZED=0 ntcli mcp call finnhub get_company_profile --arg symbol=AAPL
 
 # Search for symbols

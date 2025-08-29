@@ -2,9 +2,10 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { MCPCommandOptions } from '../../types/index.js';
 import { TokenManager } from '../../lib/auth/token-manager.js';
-import { NimbleBrainApiClient, ApiError } from '../../lib/api/client.js';
+import { ManagementClient, ManagementApiError } from '../../lib/api/management-client.js';
+import { Config } from '../../lib/config.js';
 import { WorkspaceManager } from '../../lib/workspace/workspace-manager.js';
-import { WorkspaceStorage } from '../../lib/workspace-storage.js';
+import { ConfigManager } from '../../lib/config-manager.js';
 import { MCPClient, MCPError } from '../../lib/mcp/client.js';
 
 /**
@@ -36,25 +37,16 @@ export async function handleMCPCall(
 
     const workspaceId = options.workspace || activeWorkspace.workspace_id;
     
-    // Check authentication
-    const tokenManager = new TokenManager();
-    const isAuthenticated = await tokenManager.isAuthenticated();
-    if (!isAuthenticated) {
-      spinner.fail('❌ Authentication required');
-      console.log(chalk.yellow('   Please run `ntcli auth login` first'));
-      process.exit(1);
-    }
 
     // Get authenticated API client for workspace
     const authResult = await workspaceManager.getAuthenticatedClient(workspaceId);
     if (!authResult) {
-      spinner.fail('❌ No valid workspace token');
+      spinner.fail('❌ No workspace available');
       console.log(chalk.yellow('   Please create a new workspace with `ntcli workspace create <name>`'));
       process.exit(1);
     }
 
     const { client: apiClient, workspaceId: finalWorkspaceId } = authResult;
-    const workspaceStorage = new WorkspaceStorage();
     
     // Get server details
     const serverResponse = await apiClient.getWorkspaceServer(finalWorkspaceId, serverId);
@@ -70,8 +62,9 @@ export async function handleMCPCall(
     };
     
     // Construct MCP endpoint URL
+    const configManager = new ConfigManager();
     const workspaceUuid = extractWorkspaceUuid(workspaceId);
-    const mcpEndpoint = `${apiClient.getMcpBaseUrl()}/${workspaceUuid}/${serverId}/mcp`;
+    const mcpEndpoint = `${configManager.getMcpApiUrl()}/${workspaceUuid}/${serverId}/mcp`;
 
     // Parse arguments
     let toolArgs: Record<string, any> = {};
@@ -125,15 +118,12 @@ export async function handleMCPCall(
       }
     }
 
-    // Get workspace token for MCP client
-    const workspaceToken = workspaceStorage.getWorkspaceToken(finalWorkspaceId);
-    if (!workspaceToken) {
-      spinner.fail('❌ No valid workspace token for MCP connection');
-      process.exit(1);
-    }
+    // Get workspace token for MCP client (if available)
+    const configManagerForToken = new ConfigManager();
+    const workspaceToken = configManagerForToken.getWorkspaceToken(finalWorkspaceId);
 
     // Connect to MCP server
-    const mcpClient = new MCPClient(mcpEndpoint, workspaceToken);
+    const mcpClient = new MCPClient(mcpEndpoint, workspaceToken || undefined);
     
     // Initialize the MCP connection
     spinner.text = `🔌 Initializing MCP connection...`;
@@ -211,7 +201,7 @@ export async function handleMCPCall(
       } else if (error.isErrorCode(-32603)) {
         console.log(chalk.yellow('   💡 Check that the MCP server is running and accessible'));
       }
-    } else if (error instanceof ApiError) {
+    } else if (error instanceof ManagementApiError) {
       const userMessage = error.getUserMessage();
       console.error(chalk.red(`   ${userMessage}`));
       

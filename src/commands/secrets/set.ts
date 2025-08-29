@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { SecretsCommandOptions } from '../../types/index.js';
 import { TokenManager } from '../../lib/auth/token-manager.js';
-import { NimbleBrainApiClient, ApiError } from '../../lib/api/client.js';
+import { ManagementClient, ManagementApiError } from '../../lib/api/management-client.js';
 import { WorkspaceManager } from '../../lib/workspace/workspace-manager.js';
 
 /**
@@ -57,14 +57,8 @@ export async function handleSecretsSet(
 
     const workspaceId = options.workspace || activeWorkspace.workspace_id;
     
-    // Check authentication
+    // Get token manager
     const tokenManager = new TokenManager();
-    const isAuthenticated = await tokenManager.isAuthenticated();
-    if (!isAuthenticated) {
-      spinner.fail('❌ Authentication required');
-      console.log(chalk.yellow('   Please run `ntcli auth login` first'));
-      process.exit(1);
-    }
 
     // Get authenticated API client for workspace
     const authResult = await workspaceManager.getAuthenticatedClient(workspaceId);
@@ -78,7 +72,7 @@ export async function handleSecretsSet(
     
     // Set the secret
     const response = await apiClient.setWorkspaceSecret(finalWorkspaceId, secretKey, {
-      value: secretValue
+      secret_value: secretValue
     });
     
     spinner.succeed(`🔑 Secret ${secretKey} has been set`);
@@ -97,7 +91,7 @@ export async function handleSecretsSet(
   } catch (error) {
     spinner.fail('❌ Failed to set secret');
     
-    if (error instanceof ApiError) {
+    if (error instanceof ManagementApiError) {
       const userMessage = error.getUserMessage();
       console.error(chalk.red(`   ${userMessage}`));
       

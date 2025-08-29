@@ -1,8 +1,19 @@
 import { config } from "dotenv";
 import { ClerkOAuthConfig } from "../types/index.js";
+import { ConfigManager } from "./config-manager.js";
 
-// Load environment variables silently
-config({ quiet: true });
+// Load environment variables based on NODE_ENV
+const nodeEnv = process.env.NODE_ENV;
+const envFiles = [
+  ...(nodeEnv ? [`.env.${nodeEnv}.local`, `.env.${nodeEnv}`] : []),
+  `.env.local`,
+  `.env`
+];
+
+// Load env files in order of priority (first found wins for each variable)
+envFiles.forEach(file => {
+  config({ path: file, quiet: true });
+});
 
 /**
  * Configuration for the CLI application
@@ -20,22 +31,18 @@ export class Config {
   }
 
   /**
-   * Get Clerk OAuth configuration from environment variables
+   * Get Clerk OAuth configuration
    */
   getClerkConfig(): ClerkOAuthConfig {
     const clientId = process.env.CLERK_OAUTH_CLIENT_ID || "0MUyvaWYSj4g0lzE";
-    const domain = process.env.CLERK_DOMAIN || "clerk.nimbletools.ai";
 
-    console.log("*******");
-    console.log("Client ID:", clientId);
-    console.log("Domain:", domain);
-    console.log("*******");
+    // Get domain from unified config
+    const configManager = new ConfigManager();
+    const domain = configManager.getClerkDomain();
 
-    if (!clientId || !domain) {
+    if (!clientId) {
       throw new Error(
-        "Missing required environment variables. Please set:\n" +
-          "- CLERK_OAUTH_CLIENT_ID (or use embedded default)\n" +
-          "- CLERK_DOMAIN (or use embedded default)"
+        "Missing required environment variable: CLERK_OAUTH_CLIENT_ID"
       );
     }
 
@@ -65,20 +72,15 @@ export class Config {
    * Get the config directory path
    */
   getConfigDir(): string {
-    return "~/.nimbletools";
+    return "~/.ntcli";
   }
 
-  /**
-   * Get the API base URL for development/production
-   */
-  getApiBaseUrl(): string {
-    return process.env.NTCLI_API_URL || "https://mcp.nimbletools.dev";
-  }
 
   /**
-   * Get the API base path (for different API versions)
+   * Get current NODE_ENV
    */
-  getApiBasePath(): string {
-    return process.env.NTCLI_API_BASE_PATH || "/v1";
+  getNodeEnv(): string | undefined {
+    return process.env.NODE_ENV;
   }
+
 }

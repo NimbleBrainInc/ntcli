@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { ServerCommandOptions, DeployServerRequest } from '../../types/index.js';
 import { TokenManager } from '../../lib/auth/token-manager.js';
-import { NimbleBrainApiClient, ApiError } from '../../lib/api/client.js';
+import { ManagementClient, ManagementApiError } from '../../lib/api/management-client.js';
 import { WorkspaceManager } from '../../lib/workspace/workspace-manager.js';
 
 /**
@@ -144,7 +144,7 @@ export async function handleServerDeploy(
   } catch (error) {
     spinner.fail('❌ Failed to deploy server');
     
-    if (error instanceof ApiError) {
+    if (error instanceof ManagementApiError) {
       const userMessage = error.getUserMessage();
       console.error(chalk.red(`   ${userMessage}`));
       
