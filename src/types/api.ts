@@ -656,6 +656,26 @@ export interface components {
             environment?: {
                 [key: string]: string;
             };
+            /**
+             * Timeout
+             * @description Request timeout in seconds
+             * @default 300
+             */
+            timeout: number;
+            /**
+             * Scaling
+             * @description Auto-scaling configuration
+             */
+            scaling?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Routing
+             * @description Routing configuration
+             */
+            routing?: {
+                [key: string]: unknown;
+            };
         };
         /**
          * ServerDeployResponse
@@ -688,15 +708,10 @@ export interface components {
              */
             message: string;
             /**
-             * Mcp Endpoint
-             * @description MCP endpoint URL
+             * Service Endpoint
+             * @description MCP service endpoint URL
              */
-            mcp_endpoint: string;
-            /**
-             * Health Endpoint
-             * @description Health check endpoint URL
-             */
-            health_endpoint: string;
+            service_endpoint: string;
         };
         /**
          * ServerDetailsResponse
@@ -1125,7 +1140,7 @@ export interface components {
          * @description Workspace tier options
          * @enum {string}
          */
-        WorkspaceTier: "community" | "enterprise";
+        WorkspaceTier: "community" | "premium";
         /**
          * WorkspaceTokenResponse
          * @description Workspace token response

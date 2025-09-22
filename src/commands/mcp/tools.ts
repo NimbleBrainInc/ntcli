@@ -66,11 +66,16 @@ export async function handleMCPTools(
     console.error(`🔧 MCP Endpoint: ${mcpEndpoint}`);
 
     // Connect to MCP server
-    // Get workspace token for MCP client (if available)
-    const configManagerForToken = new ConfigManager();
-    const workspaceToken = configManagerForToken.getWorkspaceToken(finalWorkspaceId);
+    // Get workspace token for MCP data plane operations
+    const workspaceToken = workspaceManager.getWorkspaceToken(finalWorkspaceId);
+    if (!workspaceToken) {
+      spinner.fail('❌ No workspace token available');
+      console.log(chalk.yellow('   Please create a workspace token:'));
+      console.log(chalk.cyan('   ntcli token create'));
+      process.exit(1);
+    }
 
-    const mcpClient = new MCPClient(mcpEndpoint, workspaceToken || undefined);
+    const mcpClient = new MCPClient(mcpEndpoint, workspaceToken);
     
     // Initialize the MCP connection
     spinner.text = `🔌 Initializing MCP connection...`;

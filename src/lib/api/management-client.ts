@@ -114,6 +114,13 @@ export class ManagementClient {
   }
 
   /**
+   * Get authentication headers
+   */
+  getAuthHeaders(): Record<string, string> {
+    return this.authProvider.getAuthHeaders();
+  }
+
+  /**
    * Make HTTP request with error handling
    */
   private async makeRequest<T>(
@@ -355,6 +362,28 @@ export class ManagementClient {
     return this.makeRequest<GetRegistryServerResponse>(
       "GET",
       `/v1/registry/servers/${serverId}`
+    );
+  }
+
+  /**
+   * Create/enable a new registry
+   */
+  async createRegistry(
+    registryUrl: string,
+    namespaceOverride?: string
+  ): Promise<{ registry_name: string; namespace: string; registry_url: string; message: string }> {
+    const body: { registry_url: string; namespace_override?: string } = {
+      registry_url: registryUrl
+    };
+    
+    if (namespaceOverride) {
+      body.namespace_override = namespaceOverride;
+    }
+
+    return this.makeRequest<{ registry_name: string; namespace: string; registry_url: string; message: string }>(
+      "POST",
+      "/v1/registry/",
+      body
     );
   }
 

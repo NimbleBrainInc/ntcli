@@ -16,6 +16,7 @@ import { handleMCPConnect } from "./commands/mcp/connect.js";
 import { handleMCPTools } from "./commands/mcp/tools.js";
 import { handleRegistryList } from "./commands/registry/list.js";
 import { handleRegistryShow } from "./commands/registry/show.js";
+import { handleRegistryCreate } from "./commands/registry/create.js";
 import { handleSecretsList } from "./commands/secrets/list.js";
 import { handleSecretsSet } from "./commands/secrets/set.js";
 import { handleSecretsUnset } from "./commands/secrets/unset.js";
@@ -360,6 +361,26 @@ async function main() {
         console.error(
           chalk.red(
             "Registry show failed:",
+            error instanceof Error ? error.message : "Unknown error"
+          )
+        );
+        process.exit(1);
+      }
+    });
+
+  // Registry create command
+  registryCommand
+    .command("create <url>")
+    .description("Create/enable a new registry from a URL")
+    .option("-n, --namespace <namespace>", "Override namespace name")
+    .option("-v, --verbose", "Show additional debug information")
+    .action(async (url, options) => {
+      try {
+        await handleRegistryCreate(url, options);
+      } catch (error) {
+        console.error(
+          chalk.red(
+            "Registry create failed:",
             error instanceof Error ? error.message : "Unknown error"
           )
         );
@@ -807,7 +828,7 @@ async function main() {
   // Token create command
   tokenCommand
     .command("create [workspace]")
-    .description("Create new workspace token (not persisted to local storage)")
+    .description("Create new workspace token and save to local storage")
     .option("-w, --workspace <id>", "Target workspace ID or name")
     .option(
       "--expires-in <seconds>",
@@ -819,6 +840,7 @@ async function main() {
       "Token expires at unix timestamp",
       (val: string) => parseInt(val, 10)
     )
+    .option("--no-save", "Create token without saving to local configuration")
     .action(async (workspace, options) => {
       try {
         await handleTokenCreate(workspace, options);

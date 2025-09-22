@@ -1,5 +1,6 @@
 import { ConfigManager, LocalWorkspace } from '../config-manager.js';
 import { ManagementClient } from '../api/management-client.js';
+import { TokenManager } from '../auth/token-manager.js';
 
 /**
  * Workspace Manager - Handles workspace operations using unified configuration
@@ -68,26 +69,42 @@ export class WorkspaceManager {
   }
 
   /**
-   * Get authenticated API client for workspace operations
+   * Get authenticated API client for control plane operations (api.* endpoints)
+   * Uses Clerk JWT for authentication
    */
   async getAuthenticatedClient(workspaceId?: string): Promise<{ client: ManagementClient; workspaceId: string } | null> {
     // Use provided workspace ID or active workspace
     const targetWorkspaceId = workspaceId || this.configManager.getActiveWorkspace()?.workspace_id;
-    
+
     if (!targetWorkspaceId) {
       return null;
     }
 
-    // Create client with simple auth provider
+    // Create client for control plane operations
     const client = new ManagementClient();
 
-    // Try to get and set workspace token if available
-    const token = this.configManager.getWorkspaceToken(targetWorkspaceId);
-    if (token) {
-      client.setWorkspaceToken(token);
+    // Control plane (api.*) always uses Clerk JWT
+    const tokenManager = new TokenManager();
+    const clerkIdToken = await tokenManager.getValidClerkIdToken();
+    if (clerkIdToken) {
+      client.setClerkJwtToken(clerkIdToken);
     }
 
     return { client, workspaceId: targetWorkspaceId };
+  }
+
+  /**
+   * Get workspace token for data plane operations (mcp.* endpoints)
+   * Returns the workspace-specific token created via 'token create/refresh'
+   */
+  getWorkspaceToken(workspaceId?: string): string | null {
+    const targetWorkspaceId = workspaceId || this.configManager.getActiveWorkspace()?.workspace_id;
+
+    if (!targetWorkspaceId) {
+      return null;
+    }
+
+    return this.configManager.getWorkspaceToken(targetWorkspaceId);
   }
 
   /**
