@@ -1,19 +1,5 @@
-import { config } from "dotenv";
 import { ClerkOAuthConfig } from "../types/index.js";
 import { ConfigManager } from "./config-manager.js";
-
-// Load environment variables based on NODE_ENV
-const nodeEnv = process.env.NODE_ENV;
-const envFiles = [
-  ...(nodeEnv ? [`.env.${nodeEnv}.local`, `.env.${nodeEnv}`] : []),
-  `.env.local`,
-  `.env`
-];
-
-// Load env files in order of priority (first found wins for each variable)
-envFiles.forEach(file => {
-  config({ path: file, quiet: true });
-});
 
 /**
  * Configuration for the CLI application
@@ -81,6 +67,22 @@ export class Config {
    */
   getNodeEnv(): string | undefined {
     return process.env.NODE_ENV;
+  }
+
+  /**
+   * Get default community user ID
+   * Used when no auth token is available
+   */
+  getCommunityUserId(): string {
+    return "00000000-0000-0000-0000-000000000001";
+  }
+
+  /**
+   * Get default community organization ID
+   * Used when no auth token is available
+   */
+  getCommunityOrganizationId(): string {
+    return "00000000-0000-0000-0000-000000000002";
   }
 
 }

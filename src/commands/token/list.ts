@@ -100,8 +100,7 @@ export async function handleTokenList(
     if (!authResult) {
       spinner.fail('❌ No valid workspace token');
       console.log(chalk.yellow('   This workspace does not have a valid access token.'));
-      console.log(chalk.yellow('   Workspace tokens are required to list tokens.'));
-      console.log(chalk.cyan('   Please refresh your workspace token: `ntcli token refresh`'));
+      console.log(chalk.yellow('   Please login to continue: `ntcli auth login`'));
       process.exit(1);
     }
 
@@ -214,7 +213,7 @@ export async function handleTokenList(
       }
       
       if (error.isAuthError()) {
-        console.log(chalk.yellow('   💡 Try running `ntcli token refresh` to refresh your workspace token'));
+        console.log(chalk.yellow('   💡 Try running `ntcli auth login` to refresh your authentication'));
       } else if (error.isNotFoundError()) {
         console.log(chalk.yellow('   💡 Workspace not found or not accessible'));
       } else if (error.statusCode === 503) {

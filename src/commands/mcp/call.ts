@@ -64,7 +64,7 @@ export async function handleMCPCall(
     // Construct MCP endpoint URL
     const configManager = new ConfigManager();
     const workspaceUuid = extractWorkspaceUuid(workspaceId);
-    const mcpEndpoint = `${configManager.getMcpApiUrl()}/${workspaceUuid}/${serverId}/mcp`;
+    const mcpEndpoint = `${configManager.getMcpApiUrl()}/${workspaceUuid}/${encodeURIComponent(serverId)}/mcp`;
 
     // Parse arguments
     let toolArgs: Record<string, any> = {};
@@ -118,17 +118,11 @@ export async function handleMCPCall(
       }
     }
 
-    // Get workspace token for MCP data plane operations
+    // Get workspace token for MCP data plane operations (optional)
     const workspaceToken = workspaceManager.getWorkspaceToken(finalWorkspaceId);
-    if (!workspaceToken) {
-      spinner.fail('❌ No workspace token available');
-      console.log(chalk.yellow('   Please create a workspace token:'));
-      console.log(chalk.cyan('   ntcli token create'));
-      process.exit(1);
-    }
 
     // Connect to MCP server
-    const mcpClient = new MCPClient(mcpEndpoint, workspaceToken);
+    const mcpClient = new MCPClient(mcpEndpoint, workspaceToken || undefined);
     
     // Initialize the MCP connection
     spinner.text = `🔌 Initializing MCP connection...`;

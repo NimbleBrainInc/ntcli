@@ -154,7 +154,7 @@ export async function handleServerClaudeConfig(
       }
       
       if (error.isAuthError()) {
-        console.log(chalk.yellow('   💡 Try running `ntcli token refresh` to refresh your workspace token'));
+        console.log(chalk.yellow('   💡 Try running `ntcli auth login` to refresh your authentication'));
       } else if (error.isNotFoundError()) {
         console.log(chalk.yellow(`   💡 Server '${serverId}' not found in this workspace`));
         console.log(chalk.cyan('   💡 Use `ntcli server list` to see deployed servers'));

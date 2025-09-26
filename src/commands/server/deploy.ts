@@ -3,6 +3,7 @@ import ora from 'ora';
 import { ServerCommandOptions, DeployServerRequest } from '../../types/index.js';
 import { TokenManager } from '../../lib/auth/token-manager.js';
 import { ManagementClient, ManagementApiError } from '../../lib/api/management-client.js';
+import { RegistryClient, RegistryApiError } from '../../lib/api/registry-client.js';
 import { WorkspaceManager } from '../../lib/workspace/workspace-manager.js';
 
 /**
@@ -20,8 +21,13 @@ export async function handleServerDeploy(
   } = {}
 ): Promise<void> {
   const spinner = ora(`🚀 Deploying server ${serverId}...`).start();
-  
+  const registryClient = new RegistryClient();
+
   try {
+    // Fetch server spec from registry first
+    spinner.text = '🔍 Fetching server spec from registry...';
+    const serverSpec = await registryClient.getServer(serverId, options.version);
+
     // Get active workspace
     const workspaceManager = new WorkspaceManager();
     const activeWorkspace = await workspaceManager.getActiveWorkspace();
@@ -48,9 +54,15 @@ export async function handleServerDeploy(
 
     const { client: apiClient, workspaceId: finalWorkspaceId } = authResult;
 
-    // Parse environment variables
-    const environmentVariables: Record<string, string> = {};
-    if (options.env) {
+    // Build deployment request with the full MCP server spec
+    const deployRequest: any = {
+      server: serverSpec,
+      name: serverId  // Use serverId as the deployment name
+    };
+
+    // Parse and add environment variables to transport
+    if (options.env && options.env.length > 0) {
+      const environmentVariables: Record<string, string> = {};
       for (const envVar of options.env) {
         const [key, value] = envVar.split('=', 2);
         if (key && value !== undefined) {
@@ -61,26 +73,60 @@ export async function handleServerDeploy(
           process.exit(1);
         }
       }
+
+      if (Object.keys(environmentVariables).length > 0) {
+        // Ensure transport exists and has env property
+        if (!deployRequest.server.transport) {
+          deployRequest.server.transport = {};
+        }
+        if (!deployRequest.server.transport.env) {
+          deployRequest.server.transport.env = {};
+        }
+        // Merge provided env vars
+        deployRequest.server.transport.env = {
+          ...deployRequest.server.transport.env,
+          ...environmentVariables
+        };
+      }
     }
 
-    // Build deployment request
-    const deployRequest: DeployServerRequest = {
-      server_id: serverId,
-      ...(options.version && { version: options.version }),
-      ...(Object.keys(environmentVariables).length > 0 && { environment_variables: environmentVariables }),
-      ...(options.cpu || options.memory) && {
-        resource_limits: {
-          ...(options.cpu && { cpu: options.cpu }),
-          ...(options.memory && { memory: options.memory })
-        }
-      },
-      ...(options.minReplicas !== undefined || options.maxReplicas !== undefined) && {
-        scaling: {
-          ...(options.minReplicas !== undefined && { min_replicas: options.minReplicas }),
-          ...(options.maxReplicas !== undefined && { max_replicas: options.maxReplicas })
-        }
+    // Apply runtime overrides from NimbleTools metadata
+    if (!deployRequest.server._meta) {
+      deployRequest.server._meta = {};
+    }
+    if (!deployRequest.server._meta['ai.nimblebrain.mcp/v1']) {
+      deployRequest.server._meta['ai.nimblebrain.mcp/v1'] = {};
+    }
+    const runtime = deployRequest.server._meta['ai.nimblebrain.mcp/v1'];
+
+    // Apply resource limits if specified
+    if (options.cpu || options.memory) {
+      if (!runtime.resources) {
+        runtime.resources = {};
       }
-    };
+      if (!runtime.resources.limits) {
+        runtime.resources.limits = {};
+      }
+      if (options.memory) {
+        runtime.resources.limits.memory = options.memory;
+      }
+      if (options.cpu) {
+        runtime.resources.limits.cpu = options.cpu;
+      }
+    }
+
+    // Apply scaling options if specified
+    if (options.minReplicas !== undefined || options.maxReplicas !== undefined) {
+      if (!runtime.scaling) {
+        runtime.scaling = {};
+      }
+      if (options.minReplicas !== undefined) {
+        runtime.scaling.minReplicas = options.minReplicas;
+      }
+      if (options.maxReplicas !== undefined) {
+        runtime.scaling.maxReplicas = options.maxReplicas;
+      }
+    }
 
     // Deploy server
     const response = await apiClient.deployServer(finalWorkspaceId, deployRequest);
@@ -110,7 +156,7 @@ export async function handleServerDeploy(
     // Server info
     console.log(chalk.blue.bold('📦 Server Details'));
     console.log(`  ${chalk.gray('Name:')} ${server.name || serverId}`);
-    console.log(`  ${chalk.gray('Version:')} ${server.version || 'latest'}`);
+    console.log(`  ${chalk.gray('Version:')} ${serverSpec.version || 'latest'}`);
     console.log(`  ${chalk.gray('Status:')} ${getStatusColor(server.status || 'unknown')}${server.status || 'unknown'}${chalk.reset()}`);
     
     if (server.service_url) {
@@ -144,7 +190,13 @@ export async function handleServerDeploy(
   } catch (error) {
     spinner.fail('❌ Failed to deploy server');
     
-    if (error instanceof ManagementApiError) {
+    if (error instanceof RegistryApiError) {
+      console.error(chalk.red(`   ${error.message}`));
+      if (error.isNotFoundError()) {
+        console.log(chalk.yellow(`   💡 Server '${serverId}' not found in registry`));
+        console.log(chalk.cyan('   💡 Use `ntcli registry list` to see available servers'));
+      }
+    } else if (error instanceof ManagementApiError) {
       const userMessage = error.getUserMessage();
       console.error(chalk.red(`   ${userMessage}`));
       
@@ -153,7 +205,7 @@ export async function handleServerDeploy(
       }
       
       if (error.isAuthError()) {
-        console.log(chalk.yellow('   💡 Try running `ntcli token refresh` to refresh your workspace token'));
+        console.log(chalk.yellow('   💡 Try running `ntcli auth login` to refresh your authentication'));
       } else if (error.isNotFoundError()) {
         console.log(chalk.yellow(`   💡 Server '${serverId}' not found in registry`));
         console.log(chalk.cyan('   💡 Use `ntcli registry list` to see available servers'));

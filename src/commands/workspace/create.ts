@@ -3,6 +3,7 @@ import ora from 'ora';
 import { ManagementApiError, ManagementClient } from '../../lib/api/management-client.js';
 import { TokenManager } from '../../lib/auth/token-manager.js';
 import { ConfigManager } from '../../lib/config-manager.js';
+import { Config } from '../../lib/config.js';
 import { CreateWorkspaceRequest, WorkspaceCommandOptions } from '../../types/index.js';
 
 /**
@@ -44,10 +45,18 @@ export async function handleWorkspaceCreate(
     }
     
     spinner.text = '🔨 Setting up workspace...';
-    
+
+    // Get user_id and organization_id - use community defaults for now
+    // TODO: Extract from token when auth is fully implemented
+    const config = Config.getInstance();
+    const userId = config.getCommunityUserId();
+    const organizationId = config.getCommunityOrganizationId();
+
     // Create workspace request
     const createRequest: CreateWorkspaceRequest = {
       name: trimmedName,
+      user_id: userId,
+      organization_id: organizationId,
       ...(options.description && { description: options.description })
     };
 
@@ -75,8 +84,7 @@ export async function handleWorkspaceCreate(
       console.log(chalk.green(`   ✓ Set as active workspace`));
     }
     
-    // Show access token info (securely)
-    console.log(chalk.cyan(`   🔑 Access token saved locally (expires in ${Math.floor(response.expires_in / 3600)} hours)`));
+    // Show workspace info
     console.log(chalk.cyan('   💡 Workspace saved locally for easy switching!'));
 
     if (!shouldSetActive) {

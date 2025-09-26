@@ -100,10 +100,6 @@ export async function handleWorkspaceSelect(
       const tokenInfo = configManager.getTokenExpirationInfo(selectedWorkspace.workspace_id);
       if (selectedWorkspace.access_token && tokenInfo && !tokenInfo.isExpired) {
         console.log(chalk.cyan(`   🔑 Access token available (expires in ${tokenInfo.minutesRemaining} minutes)`));
-      } else if (selectedWorkspace.access_token) {
-        console.log(chalk.yellow('   ⚠️  Access token expired - you may need to recreate this workspace'));
-      } else {
-        console.log(chalk.yellow('   ⚠️  No access token stored - you may need to recreate this workspace'));
       }
     } else {
       console.log(chalk.red('❌ Failed to switch workspace'));

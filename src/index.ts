@@ -1,22 +1,39 @@
 #!/usr/bin/env node
 
+import { config } from "dotenv";
+
+// Load environment variables at the very start
+const nodeEnv = process.env.NODE_ENV;
+const envFiles = [
+  ...(nodeEnv ? [`.env.${nodeEnv}.local`, `.env.${nodeEnv}`] : []),
+  `.env.local`,
+  `.env`
+];
+
+// Load env files in order of priority (first found wins for each variable)
+envFiles.forEach(file => {
+  config({ path: file, quiet: true });
+});
+
 import chalk from "chalk";
 import { Command } from "commander";
 import { createRequire } from "module";
-
-const require = createRequire(import.meta.url);
-const { version } = require("../package.json");
 import { handleLogin } from "./commands/auth/login.js";
 import { handleLogout } from "./commands/auth/logout.js";
 import { handleSignup } from "./commands/auth/signup.js";
 import { handleStatus } from "./commands/auth/status.js";
+import { handleConfigReset } from "./commands/config/reset.js";
+import { handleConfigShow } from "./commands/config/show.js";
+import { handleDomainSet } from "./commands/domain/set.js";
+import { handleDomainShow } from "./commands/domain/show.js";
 import { handleHealthCheck } from "./commands/health.js";
+import { handleInfo } from "./commands/info.js";
 import { handleMCPCall } from "./commands/mcp/call.js";
 import { handleMCPConnect } from "./commands/mcp/connect.js";
 import { handleMCPTools } from "./commands/mcp/tools.js";
+import { handleRegistryCreate } from "./commands/registry/create.js";
 import { handleRegistryList } from "./commands/registry/list.js";
 import { handleRegistryShow } from "./commands/registry/show.js";
-import { handleRegistryCreate } from "./commands/registry/create.js";
 import { handleSecretsList } from "./commands/secrets/list.js";
 import { handleSecretsSet } from "./commands/secrets/set.js";
 import { handleSecretsUnset } from "./commands/secrets/unset.js";
@@ -27,11 +44,11 @@ import { handleServerList } from "./commands/server/list.js";
 import { handleServerLogs } from "./commands/server/logs.js";
 import { handleServerRemove } from "./commands/server/remove.js";
 import { handleServerScale } from "./commands/server/scale.js";
-import { handleTokenRefresh } from "./commands/token/refresh.js";
-import { handleTokenShow } from "./commands/token/show.js";
 import { handleTokenCreate } from "./commands/token/create.js";
-import { handleTokenRevoke } from "./commands/token/revoke.js";
 import { handleTokenList } from "./commands/token/list.js";
+import { handleTokenRefresh } from "./commands/token/refresh.js";
+import { handleTokenRevoke } from "./commands/token/revoke.js";
+import { handleTokenShow } from "./commands/token/show.js";
 import { handleWorkspaceClear } from "./commands/workspace/clear.js";
 import { handleWorkspaceCreate } from "./commands/workspace/create.js";
 import { handleWorkspaceDelete } from "./commands/workspace/delete.js";
@@ -39,11 +56,9 @@ import { handleWorkspaceList } from "./commands/workspace/list.js";
 import { handleWorkspaceSelect } from "./commands/workspace/select.js";
 import { handleWorkspaceSwitch } from "./commands/workspace/switch.js";
 import { handleWorkspaceSync } from "./commands/workspace/sync.js";
-import { handleConfigReset } from "./commands/config/reset.js";
-import { handleConfigShow } from "./commands/config/show.js";
-import { handleDomainSet } from "./commands/domain/set.js";
-import { handleDomainShow } from "./commands/domain/show.js";
-import { handleInfo } from "./commands/info.js";
+
+const require = createRequire(import.meta.url);
+const { version } = require("../package.json");
 
 /**
  * Main CLI application entry point

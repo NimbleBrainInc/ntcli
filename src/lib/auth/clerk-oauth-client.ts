@@ -8,8 +8,11 @@ import {
   UserInfo,
 } from "../../types/index.js";
 
-// Hardcoded Clerk domain for all OAuth operations
-const CLERK_OAUTH_DOMAIN = "clerk.nimbletools.ai";
+// Get Clerk domain from environment or use default
+const DEFAULT_CLERK_OAUTH_DOMAIN = process.env.CLERK_OAUTH_DOMAIN || "clerk.nimbletools.ai";
+
+// Get Clerk OAuth audience from environment
+const CLERK_OAUTH_AUDIENCE = process.env.CLERK_OAUTH_AUDIENCE;
 
 /**
  * Clerk OAuth client implementing OAuth 2.0 with PKCE flow
@@ -58,7 +61,14 @@ export class ClerkOAuthClient {
       code_challenge_method: pkceChallenge.codeChallengeMethod,
     });
 
-    return `https://${CLERK_OAUTH_DOMAIN}/oauth/authorize?${params.toString()}`;
+    // Add audience if configured
+    if (CLERK_OAUTH_AUDIENCE) {
+      params.append("audience", CLERK_OAUTH_AUDIENCE);
+    }
+
+    // Use domain from environment variable if available, otherwise use config domain
+    const domain = process.env.CLERK_OAUTH_DOMAIN || this.config.domain;
+    return `https://${domain}/oauth/authorize?${params.toString()}`;
   }
 
   /**
@@ -68,7 +78,9 @@ export class ClerkOAuthClient {
     code: string,
     codeVerifier: string
   ): Promise<OAuthTokens> {
-    const tokenUrl = `https://${CLERK_OAUTH_DOMAIN}/oauth/token`;
+    // Use domain from environment variable if available, otherwise use config domain
+    const domain = process.env.CLERK_OAUTH_DOMAIN || this.config.domain;
+    const tokenUrl = `https://${domain}/oauth/token`;
 
     const body = new URLSearchParams({
       grant_type: "authorization_code",
@@ -107,7 +119,9 @@ export class ClerkOAuthClient {
    * Fetch user information using the access token
    */
   async fetchUserInfo(accessToken: string): Promise<UserInfo> {
-    const userUrl = `https://${CLERK_OAUTH_DOMAIN}/oauth/userinfo`;
+    // Use domain from environment variable if available, otherwise use config domain
+    const domain = process.env.CLERK_OAUTH_DOMAIN || this.config.domain;
+    const userUrl = `https://${domain}/oauth/userinfo`;
 
     const response = await fetch(userUrl, {
       headers: {
@@ -165,7 +179,9 @@ export class ClerkOAuthClient {
    * Refresh access token using refresh token
    */
   async refreshAccessToken(refreshToken: string): Promise<OAuthTokens> {
-    const tokenUrl = `https://${CLERK_OAUTH_DOMAIN}/oauth/token`;
+    // Use domain from environment variable if available, otherwise use config domain
+    const domain = process.env.CLERK_OAUTH_DOMAIN || this.config.domain;
+    const tokenUrl = `https://${domain}/oauth/token`;
 
     const body = new URLSearchParams({
       grant_type: "refresh_token",
