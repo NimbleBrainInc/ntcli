@@ -16,6 +16,8 @@ import {
   RefreshWorkspaceTokenResponse,
   RegistryServerFilters,
   RemoveServerResponse,
+  RestartServerRequest,
+  RestartServerResponse,
   ScaleServerRequest,
   ScaleServerResponse,
   ServerLogsRequest,
@@ -93,10 +95,18 @@ export class ManagementClient {
   }
 
   /**
+   * Set bearer token for API authentication
+   */
+  setBearerToken(token: string): void {
+    this.authProvider.setToken(token);
+  }
+
+  /**
    * Set Clerk JWT token for workspace operations that require Clerk auth
+   * @deprecated Use setBearerToken instead
    */
   setClerkJwtToken(token: string): void {
-    this.authProvider.setToken(token);
+    this.setBearerToken(token);
   }
 
   /**
@@ -294,8 +304,8 @@ export class ManagementClient {
   ): Promise<{ message: string }> {
     const uuid = this.extractWorkspaceUuid(workspaceId);
     return this.makeRequest<{ message: string }>(
-      "POST",
-      `/v1/workspaces/${uuid}/tokens/${jti}/revoke`
+      "DELETE",
+      `/v1/workspaces/${uuid}/tokens/${jti}`
     );
   }
 
@@ -443,6 +453,22 @@ export class ManagementClient {
     return this.makeRequest<ScaleServerResponse>(
       "POST",
       `/v1/workspaces/${uuid}/servers/${encodeURIComponent(serverId)}/scale`,
+      request
+    );
+  }
+
+  /**
+   * Restart a server in a workspace
+   */
+  async restartServer(
+    workspaceId: string,
+    serverId: string,
+    request: RestartServerRequest = {}
+  ): Promise<RestartServerResponse> {
+    const uuid = this.extractWorkspaceUuid(workspaceId);
+    return this.makeRequest<RestartServerResponse>(
+      "POST",
+      `/v1/workspaces/${uuid}/servers/${encodeURIComponent(serverId)}/restart`,
       request
     );
   }

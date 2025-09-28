@@ -43,6 +43,7 @@ import { handleServerInfo } from "./commands/server/info.js";
 import { handleServerList } from "./commands/server/list.js";
 import { handleServerLogs } from "./commands/server/logs.js";
 import { handleServerRemove } from "./commands/server/remove.js";
+import { handleServerRestart } from "./commands/server/restart.js";
 import { handleServerScale } from "./commands/server/scale.js";
 import { handleTokenCreate } from "./commands/token/create.js";
 import { handleTokenList } from "./commands/token/list.js";
@@ -528,6 +529,30 @@ async function main() {
         console.error(
           chalk.red(
             "Server scaling failed:",
+            error instanceof Error ? error.message : "Unknown error"
+          )
+        );
+        process.exit(1);
+      }
+    });
+
+  // Server restart command
+  serverCommand
+    .command("restart <server-id>")
+    .description("Restart a server deployment")
+    .option(
+      "-w, --workspace <id>",
+      "Target workspace ID (defaults to active workspace)"
+    )
+    .option("-f, --force", "Force restart even if server is running")
+    .option("--verbose", "Show detailed output")
+    .action(async (serverId, options) => {
+      try {
+        await handleServerRestart(serverId, options);
+      } catch (error) {
+        console.error(
+          chalk.red(
+            "Server restart failed:",
             error instanceof Error ? error.message : "Unknown error"
           )
         );

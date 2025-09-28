@@ -19,9 +19,9 @@ export async function handleRegistryCreate(
     const apiClient = new ManagementClient();
     
     // Try to get JWT token if available
-    const clerkIdToken = await tokenManager.getValidClerkIdToken();
-    if (clerkIdToken) {
-      apiClient.setClerkJwtToken(clerkIdToken);
+    const nimblebrainToken = await tokenManager.getNimbleBrainToken();
+    if (nimblebrainToken) {
+      apiClient.setBearerToken(nimblebrainToken);
     }
     
     spinner.text = '🔄 Enabling registry from URL...';

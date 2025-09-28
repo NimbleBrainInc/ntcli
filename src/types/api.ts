@@ -164,6 +164,137 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{workspace_id}/servers/{server_id}/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restart Workspace Server
+         * @description Restart server deployment - authentication handled by dependency
+         */
+        post: operations["restart_workspace_server_v1_workspaces__workspace_id__servers__server_id__restart_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/token_auth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Validate Auth
+         * @description Validate authentication for ingress auth_request.
+         *
+         *     This endpoint is called by nginx-ingress for every request to validate the bearer token.
+         *     It validates workspace JWT tokens and returns appropriate headers for authorization.
+         *
+         *     Returns:
+         *         200 OK with auth headers if token is valid
+         *         401 Unauthorized if token is invalid or missing
+         */
+        get: operations["validate_auth_v1_token_auth_get"];
+        put?: never;
+        /**
+         * Validate Auth
+         * @description Validate authentication for ingress auth_request.
+         *
+         *     This endpoint is called by nginx-ingress for every request to validate the bearer token.
+         *     It validates workspace JWT tokens and returns appropriate headers for authorization.
+         *
+         *     Returns:
+         *         200 OK with auth headers if token is valid
+         *         401 Unauthorized if token is invalid or missing
+         */
+        post: operations["validate_auth_v1_token_auth_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspace_id}/tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Workspace Tokens
+         * @description List all active tokens for a workspace.
+         *
+         *     Args:
+         *         workspace_id: The workspace UUID
+         *         current_user: Current authenticated user
+         *         provider: Provider instance
+         *         token_manager: Token manager instance
+         *
+         *     Returns:
+         *         List of active tokens for the workspace
+         */
+        get: operations["list_workspace_tokens_v1_workspaces__workspace_id__tokens_get"];
+        put?: never;
+        /**
+         * Create Workspace Token
+         * @description Create a new token for workspace access.
+         *
+         *     Args:
+         *         workspace_id: The workspace UUID
+         *         token_request: Token creation parameters
+         *         current_user: Current authenticated user
+         *         provider: Provider instance
+         *         token_manager: Token manager instance
+         *
+         *     Returns:
+         *         Created token and metadata
+         */
+        post: operations["create_workspace_token_v1_workspaces__workspace_id__tokens_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspace_id}/tokens/{token_jti}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Workspace Token
+         * @description Revoke a specific workspace token by JWT ID.
+         *
+         *     Args:
+         *         workspace_id: The workspace UUID
+         *         token_jti: The JWT ID of the token to revoke
+         *         current_user: Current authenticated user
+         *         provider: Provider instance
+         *         token_manager: Token manager instance
+         *
+         *     Returns:
+         *         Revocation confirmation
+         */
+        delete: operations["revoke_workspace_token_v1_workspaces__workspace_id__tokens__token_jti__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/": {
         parameters: {
             query?: never;
@@ -388,6 +519,63 @@ export interface components {
             total: number;
         };
         /**
+         * ServerRestartRequest
+         * @description Server restart request
+         */
+        ServerRestartRequest: {
+            /**
+             * Version
+             * @description API version
+             * @default v1
+             */
+            version: string;
+            /**
+             * Force
+             * @description Force restart even if server is running
+             * @default false
+             */
+            force: boolean;
+        };
+        /**
+         * ServerRestartResponse
+         * @description Server restart response
+         */
+        ServerRestartResponse: {
+            /**
+             * Version
+             * @description API version
+             * @default v1
+             */
+            version: string;
+            /**
+             * Server Id
+             * @description Restarted server ID
+             */
+            server_id: string;
+            /**
+             * Workspace Id
+             * Format: uuid
+             * @description Workspace ID
+             */
+            workspace_id: string;
+            /**
+             * Status
+             * @description Restart status
+             */
+            status: string;
+            /**
+             * Message
+             * @description Restart message
+             */
+            message: string;
+            /**
+             * Timestamp
+             * Format: date-time
+             * @description Restart timestamp
+             */
+            timestamp: string;
+        };
+        /**
          * ServerScaleRequest
          * @description Server scaling request
          */
@@ -477,6 +665,80 @@ export interface components {
              */
             created?: string | null;
         };
+        /**
+         * TokenCreateRequest
+         * @description Request model for creating a new token.
+         */
+        TokenCreateRequest: {
+            /**
+             * Scope
+             * @default [
+             *       "workspace:read",
+             *       "servers:read"
+             *     ]
+             */
+            scope: string[];
+            /**
+             * Expires In
+             * @default 31536000
+             */
+            expires_in: number;
+        };
+        /**
+         * TokenCreateResponse
+         * @description Response model for token creation.
+         */
+        TokenCreateResponse: {
+            /** Access Token */
+            access_token: string;
+            /**
+             * Token Type
+             * @default Bearer
+             */
+            token_type: string;
+            /** Expires In */
+            expires_in: number;
+            /** Workspace Id */
+            workspace_id: string;
+            /** Scope */
+            scope: string[];
+        };
+        /**
+         * TokenInfo
+         * @description Model for token information in list response.
+         */
+        TokenInfo: {
+            /** Jti */
+            jti: string;
+            /** Created At */
+            created_at: number;
+        };
+        /**
+         * TokenListResponse
+         * @description Response model for listing tokens.
+         */
+        TokenListResponse: {
+            /** Workspace Id */
+            workspace_id: string;
+            /** Tokens */
+            tokens: components["schemas"]["TokenInfo"][];
+            /** Count */
+            count: number;
+        };
+        /**
+         * TokenRevokeResponse
+         * @description Response model for token revocation.
+         */
+        TokenRevokeResponse: {
+            /** Workspace Id */
+            workspace_id: string;
+            /** Token Jti */
+            token_jti: string;
+            /** Status */
+            status: string;
+            /** Revoked At */
+            revoked_at: string;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -501,18 +763,6 @@ export interface components {
              * @description Workspace description
              */
             description?: string | null;
-            /**
-             * Organization Id
-             * Format: uuid
-             * @description Organization ID the workspace belongs to
-             */
-            organization_id: string;
-            /**
-             * User Id
-             * Format: uuid
-             * @description UUID of the user creating the workspace
-             */
-            user_id: string;
         };
         /**
          * WorkspaceCreateResponse
@@ -1135,6 +1385,218 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ServerScaleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restart_workspace_server_v1_workspaces__workspace_id__servers__server_id__restart_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+                server_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServerRestartRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerRestartResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_auth_v1_token_auth_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Original-URL"?: string | null;
+                "X-Original-Method"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_auth_v1_token_auth_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Original-URL"?: string | null;
+                "X-Original-Method"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_workspace_tokens_v1_workspaces__workspace_id__tokens_get: {
+        parameters: {
+            query?: {
+                k8s_client?: unknown;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_workspace_token_v1_workspaces__workspace_id__tokens_post: {
+        parameters: {
+            query?: {
+                k8s_client?: unknown;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenCreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_workspace_token_v1_workspaces__workspace_id__tokens__token_jti__delete: {
+        parameters: {
+            query?: {
+                k8s_client?: unknown;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                workspace_id: string;
+                token_jti: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenRevokeResponse"];
                 };
             };
             /** @description Validation Error */

@@ -85,9 +85,9 @@ export class WorkspaceManager {
 
     // Control plane (api.*) always uses Clerk JWT
     const tokenManager = new TokenManager();
-    const clerkIdToken = await tokenManager.getValidClerkIdToken();
-    if (clerkIdToken) {
-      client.setClerkJwtToken(clerkIdToken);
+    const nimblebrainToken = await tokenManager.getNimbleBrainToken();
+    if (nimblebrainToken) {
+      client.setBearerToken(nimblebrainToken);
     }
 
     return { client, workspaceId: targetWorkspaceId };

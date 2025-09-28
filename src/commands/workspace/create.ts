@@ -35,13 +35,13 @@ export async function handleWorkspaceCreate(
   try {
     const tokenManager = new TokenManager();
     
-    // Try to get Clerk ID token (if available)
-    const clerkIdToken = await tokenManager.getValidClerkIdToken();
+    // Try to get NimbleBrain bearer token (if available)
+    const nimblebrainToken = await tokenManager.getNimbleBrainToken();
 
     // Initialize API client
     const apiClient = new ManagementClient();
-    if (clerkIdToken) {
-      apiClient.setClerkJwtToken(clerkIdToken);
+    if (nimblebrainToken) {
+      apiClient.setBearerToken(nimblebrainToken);
     }
     
     spinner.text = '🔨 Setting up workspace...';
@@ -49,14 +49,10 @@ export async function handleWorkspaceCreate(
     // Get user_id and organization_id - use community defaults for now
     // TODO: Extract from token when auth is fully implemented
     const config = Config.getInstance();
-    const userId = config.getCommunityUserId();
-    const organizationId = config.getCommunityOrganizationId();
 
     // Create workspace request
     const createRequest: CreateWorkspaceRequest = {
       name: trimmedName,
-      user_id: userId,
-      organization_id: organizationId,
       ...(options.description && { description: options.description })
     };
 

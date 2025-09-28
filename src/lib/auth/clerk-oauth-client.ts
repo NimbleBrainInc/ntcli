@@ -216,6 +216,83 @@ export class ClerkOAuthClient {
   }
 
   /**
+   * Get a custom JWT token using a template
+   * This requires a session ID and can include custom claims/metadata
+   */
+  async getCustomSessionToken(
+    sessionId: string,
+    template?: string
+  ): Promise<any> {
+    // Use domain from environment variable if available, otherwise use config domain
+    const domain = process.env.CLERK_OAUTH_DOMAIN || this.config.domain;
+
+    // Construct the session token endpoint
+    const tokenUrl = `https://${domain}/v1/sessions/${sessionId}/tokens`;
+
+    const body: any = {};
+    if (template) {
+      body.template = template;
+    }
+
+    try {
+      const response = await fetch(tokenUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to get custom session token: ${response.status} ${errorText}`
+        );
+      }
+
+      const tokenData = await response.json();
+      console.log("\n🎫 Custom session token response:");
+      console.log(JSON.stringify(tokenData, null, 2));
+
+      return tokenData;
+    } catch (error) {
+      console.error("Error fetching custom session token:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Extract session information from the ID token or access token
+   * Clerk includes session information in the tokens
+   */
+  extractSessionInfo(idToken?: string): { sessionId?: string; userId?: string } {
+    if (!idToken) {
+      return {};
+    }
+
+    try {
+      // Decode the JWT token (without verification for now)
+      const parts = idToken.split('.');
+      if (parts.length !== 3) {
+        return {};
+      }
+
+      const payload = JSON.parse(
+        Buffer.from(parts[1]!, 'base64').toString('utf-8')
+      );
+
+      return {
+        sessionId: payload.sid || payload.session_id,
+        userId: payload.sub || payload.user_id,
+      };
+    } catch (error) {
+      console.error("Error decoding token:", error);
+      return {};
+    }
+  }
+
+  /**
    * Base64 URL encode without padding
    */
   private base64URLEncode(buffer: Buffer): string {

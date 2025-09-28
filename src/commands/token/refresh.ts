@@ -26,8 +26,8 @@ export async function handleTokenRefresh(
     // Get token manager
     const tokenManager = new TokenManager();
 
-    // Try to get valid Clerk JWT token (we need the ID token for the API call)
-    const clerkIdToken = await tokenManager.getValidClerkIdToken();
+    // Try to get valid NimbleBrain bearer token (we need the ID token for the API call)
+    const nimblebrainToken = await tokenManager.getNimbleBrainToken();
 
     let targetWorkspace;
     let serverWorkspaceInfo: WorkspaceInfo | null = null;
@@ -42,10 +42,10 @@ export async function handleTokenRefresh(
         // Not found locally, check the server
         console.log(chalk.yellow(`   Workspace '${workspaceIdentifier}' not found locally, checking server...`));
         
-        // Initialize API client with Clerk ID token
+        // Initialize API client with NimbleBrain bearer token
         const apiClient = new ManagementClient();
-        if (clerkIdToken) {
-          apiClient.setClerkJwtToken(clerkIdToken);
+        if (nimblebrainToken) {
+          apiClient.setBearerToken(nimblebrainToken);
         }
         
         try {
@@ -118,10 +118,10 @@ export async function handleTokenRefresh(
       }
     }
 
-    // Initialize API client with Clerk ID token
+    // Initialize API client with NimbleBrain bearer token
     const apiClient = new ManagementClient();
-    if (clerkIdToken) {
-      apiClient.setClerkJwtToken(clerkIdToken);
+    if (nimblebrainToken) {
+      apiClient.setBearerToken(nimblebrainToken);
     }
     
     // Prepare token options

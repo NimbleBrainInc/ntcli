@@ -77,8 +77,6 @@ export interface ApiErrorResponse {
 export interface CreateWorkspaceRequest {
   name: string;
   description?: string;
-  organization_id: string;
-  user_id: string;
 }
 
 export interface CreateWorkspaceResponse {
@@ -332,6 +330,19 @@ export interface ScaleServerResponse {
   status: string;
   message: string;
   scaling_operation_id?: string;
+  server?: WorkspaceServer;
+}
+
+export interface RestartServerRequest {
+  force?: boolean;
+}
+
+export interface RestartServerResponse {
+  server_id: string;
+  workspace_id: string;
+  status: string;
+  message: string;
+  restart_operation_id?: string;
   server?: WorkspaceServer;
 }
 

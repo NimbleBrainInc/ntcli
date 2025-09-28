@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { ClerkOAuthClient } from '../../lib/auth/clerk-oauth-client.js';
 import { TokenManager } from '../../lib/auth/token-manager.js';
 import { LocalCallbackServer } from '../../lib/auth/local-server.js';
+import { TokenExchangeClient } from '../../lib/auth/token-exchange.js';
 import { Config } from '../../lib/config.js';
 import { AuthCommandOptions } from '../../types/index.js';
 
@@ -92,30 +93,79 @@ export async function handleLogin(options: AuthCommandOptions = {}): Promise<voi
       );
       
       waitSpinner.text = '👤 Fetching user information...';
-      
-      // Fetch user information
-      const userInfo = await oauthClient.fetchUserInfo(tokens.accessToken);
-      
+
+      // Fetch user information from Clerk
+      const clerkUserInfo = await oauthClient.fetchUserInfo(tokens.accessToken);
+
+      // Exchange Clerk token for NimbleBrain API token
+      if (!tokens.idToken) {
+        throw new Error('No ID token received from authentication provider');
+      }
+
+      waitSpinner.text = '🔐 Validating CLI access...';
+
+      let nimblebrainToken: string;
+      try {
+        const tokenExchangeClient = new TokenExchangeClient();
+        nimblebrainToken = await tokenExchangeClient.exchangeToken(tokens.idToken);
+      } catch (error) {
+        // Token exchange failure is a login failure
+        if (error instanceof Error) {
+          if (error.message.includes('403')) {
+            throw new Error('Access denied: Your account does not have CLI access. Please contact your administrator.');
+          } else if (error.message.includes('401')) {
+            throw new Error('Authentication failed: Invalid credentials.');
+          } else if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
+            throw new Error('Service temporarily unavailable. Please try again later.');
+          } else {
+            throw new Error(`Failed to validate CLI access: ${error.message}`);
+          }
+        }
+        throw new Error('Failed to validate CLI access');
+      }
+
+      // Decode the NimbleBrain token to get organization ID
+      let organizationId: string | undefined;
+      try {
+        const jwtParts = nimblebrainToken.split('.');
+        if (jwtParts[1]) {
+          const payload = JSON.parse(Buffer.from(jwtParts[1], 'base64').toString());
+          organizationId = payload.nb_organization_id;
+        }
+      } catch {
+        // If we can't decode, that's okay - organizationId is optional
+      }
+
       waitSpinner.text = '💾 Saving authentication data...';
-      
-      // Store tokens and user info securely
-      await tokenManager.saveAuthSession(tokens, userInfo);
+
+      // Store only the NimbleBrain bearer token and user info
+      await tokenManager.saveAuthSession({
+        bearerToken: nimblebrainToken,
+        expiresAt: tokens.expiresAt, // Use the same expiration as the OAuth token
+        user: {
+          id: clerkUserInfo.id,
+          email: clerkUserInfo.email,
+          firstName: clerkUserInfo.firstName,
+          lastName: clerkUserInfo.lastName,
+          organizationId
+        }
+      });
       
       waitSpinner.succeed('✅ Authentication successful!');
-      
+
       // Display user information
-      console.log(chalk.green(`   Logged in as: ${userInfo.email}`));
-      console.log(chalk.gray(`   User ID: ${userInfo.id}`));
-      
-      if (userInfo.firstName || userInfo.lastName) {
-        const fullName = [userInfo.firstName, userInfo.lastName].filter(Boolean).join(' ');
+      console.log(chalk.green(`   Logged in as: ${clerkUserInfo.email}`));
+      console.log(chalk.gray(`   User ID: ${clerkUserInfo.id}`));
+
+      if (clerkUserInfo.firstName || clerkUserInfo.lastName) {
+        const fullName = [clerkUserInfo.firstName, clerkUserInfo.lastName].filter(Boolean).join(' ');
         console.log(chalk.gray(`   Name: ${fullName}`));
       }
-      
-      if (userInfo.username) {
-        console.log(chalk.gray(`   Username: ${userInfo.username}`));
+
+      if (organizationId) {
+        console.log(chalk.gray(`   Organization: ${organizationId}`));
       }
-      
+
       // Show token expiration
       const expiresAt = new Date(tokens.expiresAt);
       console.log(chalk.gray(`   Token expires: ${expiresAt.toLocaleString()}`));

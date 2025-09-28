@@ -12,27 +12,28 @@ export async function handleLogout(): Promise<void> {
     const tokenManager = new TokenManager();
     
     // Check if user is currently authenticated
-    const authState = await tokenManager.getAuthState();
-    
-    if (!authState.isAuthenticated) {
+    const isAuthenticated = await tokenManager.isAuthenticated();
+    const userInfo = await tokenManager.getUserInfo();
+
+    if (!isAuthenticated) {
       spinner.warn('⚠️  Not currently authenticated');
       console.log(chalk.yellow('   You are not logged in'));
       return;
     }
-    
+
     // Clear stored tokens and user info
     await tokenManager.clearTokens();
-    
+
     // Verify tokens were cleared
     if (process.env.NTCLI_DEBUG) {
       const stillAuthenticated = await tokenManager.isAuthenticated();
       console.log(`[DEBUG] Still authenticated after logout: ${stillAuthenticated}`);
     }
-    
+
     spinner.succeed('✅ Logged out successfully');
-    
-    if (authState.user) {
-      console.log(chalk.gray(`   Cleared credentials for: ${authState.user.email}`));
+
+    if (userInfo) {
+      console.log(chalk.gray(`   Cleared credentials for: ${userInfo.email}`));
     }
     
   } catch (error) {

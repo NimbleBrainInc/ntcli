@@ -69,20 +69,4 @@ export class Config {
     return process.env.NODE_ENV;
   }
 
-  /**
-   * Get default community user ID
-   * Used when no auth token is available
-   */
-  getCommunityUserId(): string {
-    return "00000000-0000-0000-0000-000000000001";
-  }
-
-  /**
-   * Get default community organization ID
-   * Used when no auth token is available
-   */
-  getCommunityOrganizationId(): string {
-    return "00000000-0000-0000-0000-000000000002";
-  }
-
 }

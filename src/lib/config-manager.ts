@@ -1,7 +1,7 @@
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
-import { CreateWorkspaceResponse, OAuthTokens, UserInfo } from '../types/index.js';
+import { CreateWorkspaceResponse, UserInfo, NimbleBrainAuth } from '../types/index.js';
 
 /**
  * Local workspace information for CLI
@@ -29,10 +29,7 @@ export interface UnifiedConfig {
   insecure?: boolean; // Default: false (use HTTPS)
 
   // Authentication
-  auth?: {
-    tokens?: OAuthTokens;
-    user?: UserInfo;
-  };
+  auth?: NimbleBrainAuth;
 
   // Workspaces
   workspaces: {
@@ -67,7 +64,7 @@ export class ConfigManager {
   /**
    * Load unified configuration from file
    */
-  private loadConfig(): UnifiedConfig {
+  loadConfig(): UnifiedConfig {
     if (this.config) {
       return this.config;
     }
@@ -200,6 +197,12 @@ export class ConfigManager {
    * Get the Clerk authentication domain
    */
   getClerkDomain(): string {
+    // Use environment variable if set
+    if (process.env.CLERK_OAUTH_DOMAIN) {
+      return process.env.CLERK_OAUTH_DOMAIN;
+    }
+
+    // Fall back to deriving from main domain
     const domain = this.getDomain();
 
     // For localhost, return as-is
@@ -212,20 +215,37 @@ export class ConfigManager {
   // Authentication methods
 
   /**
-   * Store authentication tokens and user info
+   * Set NimbleBrain authentication
    */
-  setAuth(tokens: OAuthTokens, userInfo: UserInfo): void {
+  setAuth(auth: NimbleBrainAuth): void {
     const config = this.loadConfig();
-    config.auth = { tokens, user: userInfo };
+    config.auth = auth;
     this.saveConfig();
   }
 
   /**
-   * Get authentication tokens
+   * Get NimbleBrain bearer token
    */
-  getAuthTokens(): OAuthTokens | null {
+  getBearerToken(): string | null {
     const config = this.loadConfig();
-    return config.auth?.tokens || null;
+    if (!config.auth) return null;
+
+    const now = Date.now();
+    if (config.auth.expiresAt > now) {
+      return config.auth.bearerToken;
+    }
+    return null; // Token expired
+  }
+
+  /**
+   * Check if authenticated
+   */
+  isAuthenticated(): boolean {
+    const config = this.loadConfig();
+    if (!config.auth) return false;
+
+    const now = Date.now();
+    return config.auth.expiresAt > now;
   }
 
   /**
@@ -233,7 +253,9 @@ export class ConfigManager {
    */
   getUserInfo(): UserInfo | null {
     const config = this.loadConfig();
-    return config.auth?.user || null;
+    if (!config.auth) return null;
+
+    return config.auth.user;
   }
 
   /**
