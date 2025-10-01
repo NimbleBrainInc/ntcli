@@ -355,16 +355,29 @@ export interface RemoveServerResponse {
 }
 
 export interface ServerLogsRequest {
-  lines?: number;
-  follow?: boolean;
+  limit?: number;
   since?: string;
-  timestamps?: boolean;
+  until?: string;
+  level?: 'debug' | 'info' | 'warning' | 'error' | 'critical';
+  pod_name?: string;
+}
+
+export interface ServerLogEntry {
+  timestamp: string;
+  level: 'debug' | 'info' | 'warning' | 'error' | 'critical';
+  message: string;
+  pod_name?: string;
+  container_name?: string;
 }
 
 export interface ServerLogsResponse {
+  version: string;
   server_id: string;
-  logs: string[];
-  truncated?: boolean;
+  workspace_id: string;
+  logs: ServerLogEntry[];
+  count: number;
+  has_more: boolean;
+  query_timestamp: string;
 }
 
 // Workspace Secrets API types

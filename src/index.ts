@@ -589,15 +589,28 @@ async function main() {
   serverCommand
     .command("logs <server-id>")
     .description("Get logs for a server in the workspace")
-    .option("-n, --lines <number>", "Number of lines to retrieve", (val) =>
+    .option("--limit <number>", "Maximum number of log entries to return (default: 10, max: 1000)", (val) =>
       parseInt(val, 10)
     )
     .option("-f, --follow", "Follow log output (not implemented yet)")
     .option(
       "--since <time>",
-      "Show logs since timestamp (e.g., 2023-01-01T00:00:00Z, 1h, 30m)"
+      "Show logs since timestamp (e.g., 2024-01-01T00:00:00Z, 1h, 30m, 2d)"
+    )
+    .option(
+      "--until <time>",
+      "Show logs until timestamp (e.g., 2024-01-01T00:00:00Z, 1h, 30m)"
+    )
+    .option(
+      "--level <level>",
+      "Minimum log level to return (debug, info, warning, error, critical)"
+    )
+    .option(
+      "--pod <name>",
+      "Filter logs from a specific pod"
     )
     .option("-t, --timestamps", "Show timestamps in log output")
+    .option("--json", "Output logs in JSON format")
     .option(
       "-w, --workspace <id>",
       "Target workspace ID (defaults to active workspace)"

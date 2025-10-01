@@ -498,20 +498,24 @@ export class ManagementClient {
     const uuid = this.extractWorkspaceUuid(workspaceId);
     const queryParams = new URLSearchParams();
 
-    if (request.lines !== undefined) {
-      queryParams.append("lines", request.lines.toString());
-    }
-
-    if (request.follow !== undefined) {
-      queryParams.append("follow", request.follow.toString());
+    if (request.limit !== undefined) {
+      queryParams.append("limit", request.limit.toString());
     }
 
     if (request.since !== undefined) {
       queryParams.append("since", request.since);
     }
 
-    if (request.timestamps !== undefined) {
-      queryParams.append("timestamps", request.timestamps.toString());
+    if (request.until !== undefined) {
+      queryParams.append("until", request.until);
+    }
+
+    if (request.level !== undefined) {
+      queryParams.append("level", request.level);
+    }
+
+    if (request.pod_name !== undefined) {
+      queryParams.append("pod_name", request.pod_name);
     }
 
     const queryString = queryParams.toString();

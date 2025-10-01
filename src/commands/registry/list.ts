@@ -98,7 +98,7 @@ export async function handleRegistryList(
     }
     
     // Show summary info
-    console.log(chalk.gray(`   Registry URL: https://registry.nimblebrain.ai`));
+    console.log(chalk.gray(`   Registry URL: https://registry.nimbletools.ai`));
 
     if (!options.verbose) {
       console.log(chalk.gray('   💡 Use --verbose for deployment details'));

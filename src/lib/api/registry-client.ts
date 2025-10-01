@@ -1,14 +1,14 @@
 import { ConfigManager } from '../config-manager.js';
 
 /**
- * Client for interacting with the NimbleBrain Registry service (registry.nimblebrain.ai)
+ * Client for interacting with the NimbleTools Registry service (registry.nimbletools.ai)
  * Handles fetching MCP server definitions from the registry
  */
 export class RegistryClient {
   private baseUrl: string;
   private defaultHeaders: Record<string, string>;
 
-  constructor(baseUrl: string = 'https://registry.nimblebrain.ai') {
+  constructor(baseUrl: string = 'https://registry.nimbletools.ai') {
     this.baseUrl = baseUrl;
     this.defaultHeaders = {
       'Content-Type': 'application/json',
@@ -191,7 +191,7 @@ export interface ServerVersionsResponse {
 
 /**
  * MCP Server Definition following the NimbleBrain extended schema
- * Based on https://registry.nimblebrain.ai/schemas/2025-09-22/nimblebrain-server.schema.json
+ * Based on https://registry.nimbletools.ai/schemas/2025-09-22/nimblebrain-server.schema.json
  */
 export interface MCPServerDefinition {
   // Standard MCP fields

@@ -69,15 +69,10 @@ export async function handleServerClaudeConfig(
       return workspaceId;
     };
     
-    // Get workspace token
+    // Get workspace token (if available)
     const configManagerForToken = new ConfigManager();
     const workspace = configManagerForToken.getWorkspace(finalWorkspaceId);
-    if (!workspace || !workspace.access_token) {
-      spinner.fail('❌ No workspace token available');
-      console.log(chalk.yellow('   Please refresh your workspace token:'));
-      console.log(chalk.cyan('   ntcli token refresh'));
-      process.exit(1);
-    }
+    const workspaceToken = workspace?.access_token || '';
     
     // Construct MCP endpoint URL
     const workspaceUuid = extractWorkspaceUuid(finalWorkspaceId);
@@ -90,7 +85,7 @@ export async function handleServerClaudeConfig(
       '--endpoint',
       mcpEndpoint,
       '--token',
-      workspace.access_token
+      workspaceToken
     ];
     
     // Add insecure flag if requested
@@ -111,7 +106,16 @@ export async function handleServerClaudeConfig(
     };
     
     spinner.succeed(`✅ Claude Desktop config generated for ${serverId}`);
-    
+
+    // Warn if no token is available
+    if (!workspaceToken) {
+      console.log();
+      console.log(chalk.yellow('⚠️  Warning: No workspace token available'));
+      console.log(chalk.yellow('   The configuration will return 401 Unauthorized when used.'));
+      console.log(chalk.yellow('   Please refresh your workspace token:'));
+      console.log(chalk.cyan('   ntcli token refresh'));
+    }
+
     console.log();
     console.log(chalk.green.bold('📋 Claude Desktop MCP Configuration:'));
     console.log();
