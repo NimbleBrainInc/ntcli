@@ -14,6 +14,9 @@ export * from "./auth.js";
 // Re-export MCP protocol types
 export * from "./mcp.js";
 
+// Re-export MCP server types
+export * from "./mcp-server.js";
+
 // Re-export CLI command types
 export * from "./cli.js";
 
@@ -33,11 +36,7 @@ export type ApiWorkspaceDeleteResponse =
   components["schemas"]["WorkspaceDeleteResponse"];
 export type ApiWorkspaceDetailsResponse =
   components["schemas"]["WorkspaceDetailsResponse"];
-export type ApiWorkspaceTokenResponse =
-  components["schemas"]["WorkspaceTokenResponse"];
 export type ApiServerListResponse = components["schemas"]["ServerListResponse"];
-export type ApiServerDeployRequest =
-  components["schemas"]["ServerDeployRequest"];
 export type ApiServerDeployResponse =
   components["schemas"]["ServerDeployResponse"];
 export type ApiServerDetailsResponse =
@@ -47,18 +46,6 @@ export type ApiServerDeleteResponse =
 export type ApiServerScaleRequest = components["schemas"]["ServerScaleRequest"];
 export type ApiServerScaleResponse =
   components["schemas"]["ServerScaleResponse"];
-export type ApiRegistryServersResponse =
-  components["schemas"]["RegistryServersResponse"];
-export type ApiRegistryServerSummary =
-  components["schemas"]["RegistryServerSummary"];
-export type ApiRegistryListResponse =
-  components["schemas"]["RegistryListResponse"];
-export type ApiRegistryEnableRequest =
-  components["schemas"]["RegistryEnableRequest"];
-export type ApiRegistryEnableResponse =
-  components["schemas"]["RegistryEnableResponse"];
-export type ApiRegistry = components["schemas"]["Registry"];
-export type ApiRegistryInfo = components["schemas"]["RegistryInfo"];
 export type ApiWorkspaceSecretsResponse =
   components["schemas"]["WorkspaceSecretsResponse"];
 export type ApiWorkspaceSecretResponse =
@@ -346,6 +333,19 @@ export interface ScaleServerResponse {
   server?: WorkspaceServer;
 }
 
+export interface RestartServerRequest {
+  force?: boolean;
+}
+
+export interface RestartServerResponse {
+  server_id: string;
+  workspace_id: string;
+  status: string;
+  message: string;
+  restart_operation_id?: string;
+  server?: WorkspaceServer;
+}
+
 export interface RemoveServerResponse {
   server_id: string;
   workspace_id?: string;
@@ -355,16 +355,29 @@ export interface RemoveServerResponse {
 }
 
 export interface ServerLogsRequest {
-  lines?: number;
-  follow?: boolean;
+  limit?: number;
   since?: string;
-  timestamps?: boolean;
+  until?: string;
+  level?: 'debug' | 'info' | 'warning' | 'error' | 'critical';
+  pod_name?: string;
+}
+
+export interface ServerLogEntry {
+  timestamp: string;
+  level: 'debug' | 'info' | 'warning' | 'error' | 'critical';
+  message: string;
+  pod_name?: string;
+  container_name?: string;
 }
 
 export interface ServerLogsResponse {
+  version: string;
   server_id: string;
-  logs: string[];
-  truncated?: boolean;
+  workspace_id: string;
+  logs: ServerLogEntry[];
+  count: number;
+  has_more: boolean;
+  query_timestamp: string;
 }
 
 // Workspace Secrets API types

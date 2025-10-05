@@ -9,12 +9,26 @@ export interface ClerkOAuthConfig {
   scopes: string[];
 }
 
+// OAuth tokens received from Clerk (only used during login flow)
 export interface OAuthTokens {
   accessToken: string;
-  refreshToken?: string | undefined;
-  idToken?: string | undefined;
+  refreshToken?: string;
+  idToken?: string;
   expiresAt: number;
   tokenType: string;
+}
+
+// NimbleBrain API authentication
+export interface NimbleBrainAuth {
+  bearerToken: string;
+  expiresAt: number;
+  user: {
+    id: string;
+    email: string;
+    firstName?: string | undefined;
+    lastName?: string | undefined;
+    organizationId?: string | undefined;
+  };
 }
 
 export interface UserInfo {
@@ -22,13 +36,7 @@ export interface UserInfo {
   email: string;
   firstName?: string | undefined;
   lastName?: string | undefined;
-  username?: string | undefined;
-}
-
-export interface AuthState {
-  isAuthenticated: boolean;
-  user?: UserInfo;
-  tokens?: OAuthTokens;
+  organizationId?: string | undefined;
 }
 
 export interface PKCEChallenge {
@@ -40,6 +48,7 @@ export interface PKCEChallenge {
 export interface OAuthAuthorizationResponse {
   code: string;
   state: string;
+  [key: string]: any; // Allow additional parameters from OAuth callback
 }
 
 export interface ClerkTokenResponse {

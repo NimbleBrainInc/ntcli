@@ -20,10 +20,10 @@ export async function handleWorkspaceSync(
     const tokenManager = new TokenManager();
     const apiClient = new ManagementClient();
     
-    // Try to get valid Clerk JWT token
-    const clerkJwt = await tokenManager.getValidClerkIdToken();
-    if (clerkJwt) {
-      apiClient.setClerkJwtToken(clerkJwt);
+    // Try to get valid NimbleBrain bearer token
+    const nimblebrainToken = await tokenManager.getNimbleBrainToken();
+    if (nimblebrainToken) {
+      apiClient.setBearerToken(nimblebrainToken);
     }
     
     // Fetch workspaces from server

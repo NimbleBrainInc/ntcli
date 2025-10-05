@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * List Workspaces
-         * @description List workspaces - compatible with ntcli
+         * @description List workspaces
          */
         get: operations["list_workspaces_v1_workspaces_get"];
         put?: never;
@@ -37,36 +37,16 @@ export interface paths {
         };
         /**
          * Get Workspace Details
-         * @description Get workspace details - authentication handled by dependency
+         * @description Get workspace details - authentication and access handled by dependency
          */
         get: operations["get_workspace_details_v1_workspaces__workspace_id__get"];
         put?: never;
         post?: never;
         /**
          * Delete Workspace
-         * @description Delete workspace - authentication handled by dependency
+         * @description Delete workspace - authentication and access handled by dependency
          */
         delete: operations["delete_workspace_v1_workspaces__workspace_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/workspaces/{workspace_id}/tokens": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Get Workspace Token
-         * @description Generate workspace token - simplified for community version
-         */
-        post: operations["get_workspace_token_v1_workspaces__workspace_id__tokens_post"];
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -125,13 +105,13 @@ export interface paths {
         };
         /**
          * List Workspace Servers
-         * @description List servers - authentication handled by dependency
+         * @description List servers deployed in a workspace
          */
         get: operations["list_workspace_servers_v1_workspaces__workspace_id__servers_get"];
         put?: never;
         /**
          * Deploy Server To Workspace
-         * @description Deploy server - authentication handled by dependency
+         * @description Deploy server to workspace - accepts MCP server definition from registry
          */
         post: operations["deploy_server_to_workspace_v1_workspaces__workspace_id__servers_post"];
         delete?: never;
@@ -149,14 +129,14 @@ export interface paths {
         };
         /**
          * Get Workspace Server
-         * @description Get server details - authentication handled by dependency
+         * @description Get server details
          */
         get: operations["get_workspace_server_v1_workspaces__workspace_id__servers__server_id__get"];
         put?: never;
         post?: never;
         /**
          * Remove Workspace Server
-         * @description Remove server - authentication handled by dependency
+         * @description Remove server from workspace
          */
         delete: operations["remove_workspace_server_v1_workspaces__workspace_id__servers__server_id__delete"];
         options?: never;
@@ -184,28 +164,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/registry/servers": {
+    "/v1/workspaces/{workspace_id}/servers/{server_id}/restart": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /**
-         * List Registry Servers
-         * @description List available MCP servers from all registries owned by the user
-         *     Aggregates servers from all registries created by the authenticated user
-         */
-        get: operations["list_registry_servers_v1_registry_servers_get"];
+        get?: never;
         put?: never;
-        post?: never;
+        /**
+         * Restart Workspace Server
+         * @description Restart server deployment - authentication handled by dependency
+         */
+        post: operations["restart_workspace_server_v1_workspaces__workspace_id__servers__server_id__restart_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/registry/servers/{server_id}": {
+    "/v1/token_auth": {
         parameters: {
             query?: never;
             header?: never;
@@ -213,20 +192,37 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Registry Server
-         * @description Get detailed information about a specific server from user's registries
-         *     Searches across all registries owned by the authenticated user
+         * Validate Auth
+         * @description Validate authentication for ingress auth_request.
+         *
+         *     This endpoint is called by nginx-ingress for every request to validate the bearer token.
+         *     It validates workspace JWT tokens and returns appropriate headers for authorization.
+         *
+         *     Returns:
+         *         200 OK with auth headers if token is valid
+         *         401 Unauthorized if token is invalid or missing
          */
-        get: operations["get_registry_server_v1_registry_servers__server_id__get"];
+        get: operations["validate_auth_v1_token_auth_get"];
         put?: never;
-        post?: never;
+        /**
+         * Validate Auth
+         * @description Validate authentication for ingress auth_request.
+         *
+         *     This endpoint is called by nginx-ingress for every request to validate the bearer token.
+         *     It validates workspace JWT tokens and returns appropriate headers for authorization.
+         *
+         *     Returns:
+         *         200 OK with auth headers if token is valid
+         *         401 Unauthorized if token is invalid or missing
+         */
+        post: operations["validate_auth_v1_token_auth_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/registry/": {
+    "/v1/workspaces/{workspace_id}/tokens": {
         parameters: {
             query?: never;
             header?: never;
@@ -234,38 +230,66 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Registries
-         * @description List all registries owned by the authenticated user
+         * List Workspace Tokens
+         * @description List all active tokens for a workspace.
+         *
+         *     Args:
+         *         workspace_id: The workspace UUID
+         *         current_user: Current authenticated user
+         *         provider: Provider instance
+         *         token_manager: Token manager instance
+         *
+         *     Returns:
+         *         List of active tokens for the workspace
          */
-        get: operations["list_registries_v1_registry__get"];
+        get: operations["list_workspace_tokens_v1_workspaces__workspace_id__tokens_get"];
         put?: never;
         /**
-         * Create Registry
-         * @description Create a registry from URL and deploy its services
-         *     Creates namespace and deploys all active services from the registry
+         * Create Workspace Token
+         * @description Create a new token for workspace access.
+         *
+         *     Args:
+         *         workspace_id: The workspace UUID
+         *         token_request: Token creation parameters
+         *         current_user: Current authenticated user
+         *         provider: Provider instance
+         *         token_manager: Token manager instance
+         *
+         *     Returns:
+         *         Created token and metadata
          */
-        post: operations["create_registry_v1_registry__post"];
+        post: operations["create_workspace_token_v1_workspaces__workspace_id__tokens_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/registry/info": {
+    "/v1/workspaces/{workspace_id}/tokens/{token_jti}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /**
-         * Get Registry Info Endpoint
-         * @description Get information about a registry from its URL
-         */
-        get: operations["get_registry_info_endpoint_v1_registry_info_get"];
+        get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Revoke Workspace Token
+         * @description Revoke a specific workspace token by JWT ID.
+         *
+         *     Args:
+         *         workspace_id: The workspace UUID
+         *         token_jti: The JWT ID of the token to revoke
+         *         current_user: Current authenticated user
+         *         provider: Provider instance
+         *         token_manager: Token manager instance
+         *
+         *     Returns:
+         *         Revocation confirmation
+         */
+        delete: operations["revoke_workspace_token_v1_workspaces__workspace_id__tokens__token_jti__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -348,261 +372,6 @@ export interface components {
             timestamp: string;
         };
         /**
-         * Registry
-         * @description Registry resource
-         */
-        Registry: {
-            /**
-             * Name
-             * @description Registry name
-             */
-            name: string;
-            /**
-             * Namespace
-             * @description Kubernetes namespace
-             */
-            namespace: string;
-            /**
-             * Url
-             * @description Registry URL
-             */
-            url?: string | null;
-            /**
-             * Server Count
-             * @description Number of servers in this registry
-             */
-            server_count: number;
-            /**
-             * Created At
-             * Format: date-time
-             * @description Creation timestamp
-             */
-            created_at: string;
-            /**
-             * Owner
-             * @description Registry owner
-             */
-            owner: string;
-        };
-        /**
-         * RegistryEnableRequest
-         * @description Registry enable request
-         */
-        RegistryEnableRequest: {
-            /**
-             * Registry Url
-             * @description URL to registry.yaml file
-             */
-            registry_url: string;
-            /**
-             * Namespace Override
-             * @description Override namespace name
-             */
-            namespace_override?: string | null;
-        };
-        /**
-         * RegistryEnableResponse
-         * @description Registry enable response
-         */
-        RegistryEnableResponse: {
-            /**
-             * Registry Name
-             * @description Registry name
-             */
-            registry_name: string;
-            /**
-             * Registry Version
-             * @description Registry version
-             */
-            registry_version: string;
-            /**
-             * Namespace
-             * @description Created namespace
-             */
-            namespace: string;
-            /**
-             * Services Created
-             * @description Number of services created
-             */
-            services_created: number;
-            /**
-             * Services
-             * @description List of created service names
-             */
-            services: string[];
-            /**
-             * Timestamp
-             * Format: date-time
-             * @description Enable timestamp
-             */
-            timestamp?: string;
-        };
-        /**
-         * RegistryInfo
-         * @description Registry information
-         */
-        RegistryInfo: {
-            /**
-             * Name
-             * @description Registry name
-             */
-            name: string;
-            /**
-             * Version
-             * @description Registry version
-             */
-            version: string;
-            /**
-             * Url
-             * @description Registry URL
-             */
-            url: string;
-            /**
-             * Last Updated
-             * @description Last updated date
-             */
-            last_updated?: string | null;
-            /**
-             * Total Servers
-             * @description Total servers in registry
-             */
-            total_servers: number;
-            /**
-             * Active Servers
-             * @description Active servers in registry
-             */
-            active_servers: number;
-        };
-        /**
-         * RegistryListResponse
-         * @description Registry list response
-         */
-        RegistryListResponse: {
-            /**
-             * Registries
-             * @description List of registries
-             */
-            registries: components["schemas"]["Registry"][];
-            /**
-             * Total
-             * @description Total number of registries
-             */
-            total: number;
-            /**
-             * Total Servers
-             * @description Total servers across all registries
-             */
-            total_servers: number;
-            /**
-             * Owner
-             * @description Owner of the registries
-             */
-            owner: string;
-        };
-        /**
-         * RegistryServerSummary
-         * @description Registry server summary for list responses
-         */
-        RegistryServerSummary: {
-            /**
-             * Id
-             * @description Server ID
-             */
-            id: string;
-            /**
-             * Name
-             * @description Server name
-             */
-            name: string;
-            /**
-             * Description
-             * @description Server description
-             */
-            description: string;
-            /**
-             * Image
-             * @description Container image
-             */
-            image: string;
-            /**
-             * Version
-             * @description Server version
-             */
-            version: string;
-            /**
-             * Status
-             * @description Server status
-             */
-            status: string;
-            /**
-             * Registry
-             * @description Registry name
-             */
-            registry: string;
-            /**
-             * Namespace
-             * @description Namespace
-             */
-            namespace: string;
-            /**
-             * Deployment
-             * @description Deployment config
-             */
-            deployment: {
-                [key: string]: unknown;
-            };
-            /**
-             * Tools
-             * @description Available tools
-             */
-            tools?: string[];
-            /**
-             * Replicas
-             * @description Replica information
-             */
-            replicas: {
-                [key: string]: number;
-            };
-            /**
-             * Category
-             * @description Server category
-             */
-            category?: string | null;
-            /**
-             * Tags
-             * @description Server tags
-             */
-            tags?: string[];
-        };
-        /**
-         * RegistryServersResponse
-         * @description Registry servers list response
-         */
-        RegistryServersResponse: {
-            /**
-             * Servers
-             * @description List of servers
-             */
-            servers: components["schemas"]["RegistryServerSummary"][];
-            /**
-             * Total
-             * @description Total number of servers
-             */
-            total: number;
-            /**
-             * Registries
-             * @description Registry information
-             */
-            registries: {
-                [key: string]: unknown;
-            }[];
-            /**
-             * Owner
-             * @description Owner
-             */
-            owner: string;
-        };
-        /**
          * ServerDeleteResponse
          * @description Server deletion response
          */
@@ -614,6 +383,7 @@ export interface components {
             server_id: string;
             /**
              * Workspace Id
+             * Format: uuid
              * @description Workspace ID
              */
             workspace_id: string;
@@ -634,30 +404,6 @@ export interface components {
             message: string;
         };
         /**
-         * ServerDeployRequest
-         * @description Server deployment request
-         */
-        ServerDeployRequest: {
-            /**
-             * Server Id
-             * @description Server ID to deploy
-             */
-            server_id: string;
-            /**
-             * Replicas
-             * @description Number of replicas
-             * @default 1
-             */
-            replicas: number;
-            /**
-             * Environment
-             * @description Environment variables
-             */
-            environment?: {
-                [key: string]: string;
-            };
-        };
-        /**
          * ServerDeployResponse
          * @description Server deployment response
          */
@@ -669,6 +415,7 @@ export interface components {
             server_id: string;
             /**
              * Workspace Id
+             * Format: uuid
              * @description Workspace ID
              */
             workspace_id: string;
@@ -688,15 +435,10 @@ export interface components {
              */
             message: string;
             /**
-             * Mcp Endpoint
-             * @description MCP endpoint URL
+             * Service Endpoint
+             * @description MCP service endpoint URL
              */
-            mcp_endpoint: string;
-            /**
-             * Health Endpoint
-             * @description Health check endpoint URL
-             */
-            health_endpoint: string;
+            service_endpoint: string;
         };
         /**
          * ServerDetailsResponse
@@ -715,6 +457,7 @@ export interface components {
             name: string;
             /**
              * Workspace Id
+             * Format: uuid
              * @description Workspace ID
              */
             workspace_id: string;
@@ -760,6 +503,7 @@ export interface components {
             servers: components["schemas"]["ServerSummary"][];
             /**
              * Workspace Id
+             * Format: uuid
              * @description Workspace ID
              */
             workspace_id: string;
@@ -773,6 +517,63 @@ export interface components {
              * @description Total number of servers
              */
             total: number;
+        };
+        /**
+         * ServerRestartRequest
+         * @description Server restart request
+         */
+        ServerRestartRequest: {
+            /**
+             * Version
+             * @description API version
+             * @default v1
+             */
+            version: string;
+            /**
+             * Force
+             * @description Force restart even if server is running
+             * @default false
+             */
+            force: boolean;
+        };
+        /**
+         * ServerRestartResponse
+         * @description Server restart response
+         */
+        ServerRestartResponse: {
+            /**
+             * Version
+             * @description API version
+             * @default v1
+             */
+            version: string;
+            /**
+             * Server Id
+             * @description Restarted server ID
+             */
+            server_id: string;
+            /**
+             * Workspace Id
+             * Format: uuid
+             * @description Workspace ID
+             */
+            workspace_id: string;
+            /**
+             * Status
+             * @description Restart status
+             */
+            status: string;
+            /**
+             * Message
+             * @description Restart message
+             */
+            message: string;
+            /**
+             * Timestamp
+             * Format: date-time
+             * @description Restart timestamp
+             */
+            timestamp: string;
         };
         /**
          * ServerScaleRequest
@@ -797,6 +598,7 @@ export interface components {
             server_id: string;
             /**
              * Workspace Id
+             * Format: uuid
              * @description Workspace ID
              */
             workspace_id: string;
@@ -833,6 +635,7 @@ export interface components {
             name: string;
             /**
              * Workspace Id
+             * Format: uuid
              * @description Workspace ID
              */
             workspace_id: string;
@@ -862,6 +665,80 @@ export interface components {
              */
             created?: string | null;
         };
+        /**
+         * TokenCreateRequest
+         * @description Request model for creating a new token.
+         */
+        TokenCreateRequest: {
+            /**
+             * Scope
+             * @default [
+             *       "workspace:read",
+             *       "servers:read"
+             *     ]
+             */
+            scope: string[];
+            /**
+             * Expires In
+             * @default 31536000
+             */
+            expires_in: number;
+        };
+        /**
+         * TokenCreateResponse
+         * @description Response model for token creation.
+         */
+        TokenCreateResponse: {
+            /** Access Token */
+            access_token: string;
+            /**
+             * Token Type
+             * @default Bearer
+             */
+            token_type: string;
+            /** Expires In */
+            expires_in: number;
+            /** Workspace Id */
+            workspace_id: string;
+            /** Scope */
+            scope: string[];
+        };
+        /**
+         * TokenInfo
+         * @description Model for token information in list response.
+         */
+        TokenInfo: {
+            /** Jti */
+            jti: string;
+            /** Created At */
+            created_at: number;
+        };
+        /**
+         * TokenListResponse
+         * @description Response model for listing tokens.
+         */
+        TokenListResponse: {
+            /** Workspace Id */
+            workspace_id: string;
+            /** Tokens */
+            tokens: components["schemas"]["TokenInfo"][];
+            /** Count */
+            count: number;
+        };
+        /**
+         * TokenRevokeResponse
+         * @description Response model for token revocation.
+         */
+        TokenRevokeResponse: {
+            /** Workspace Id */
+            workspace_id: string;
+            /** Token Jti */
+            token_jti: string;
+            /** Status */
+            status: string;
+            /** Revoked At */
+            revoked_at: string;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -882,11 +759,6 @@ export interface components {
              */
             name: string;
             /**
-             * @description Workspace tier
-             * @default community
-             */
-            tier: components["schemas"]["WorkspaceTier"];
-            /**
              * Description
              * @description Workspace description
              */
@@ -904,6 +776,7 @@ export interface components {
             workspace_name: string;
             /**
              * Workspace Id
+             * Format: uuid
              * @description Unique workspace ID
              */
             workspace_id: string;
@@ -913,15 +786,23 @@ export interface components {
              */
             namespace: string;
             /**
-             * Tier
-             * @description Workspace tier
+             * User Id
+             * Format: uuid
+             * @description User ID who created the workspace
              */
-            tier: string;
+            user_id: string;
             /**
-             * Created
+             * Organization Id
+             * Format: uuid
+             * @description Organization ID
+             */
+            organization_id: string;
+            /**
+             * Created At
+             * Format: date-time
              * @description Creation timestamp
              */
-            created: string;
+            created_at: string;
             /**
              * Status
              * @description Workspace status
@@ -940,6 +821,7 @@ export interface components {
         WorkspaceDeleteResponse: {
             /**
              * Workspace Id
+             * Format: uuid
              * @description Deleted workspace ID
              */
             workspace_id: string;
@@ -961,6 +843,7 @@ export interface components {
         WorkspaceDetailsResponse: {
             /**
              * Workspace Id
+             * Format: uuid
              * @description Unique workspace ID
              */
             workspace_id: string;
@@ -975,20 +858,20 @@ export interface components {
              */
             namespace: string;
             /**
-             * Tier
-             * @description Workspace tier
+             * User Id
+             * @description User ID who owns the workspace
              */
-            tier: string;
+            user_id?: string | null;
             /**
-             * Created
+             * Organization Id
+             * @description Organization ID
+             */
+            organization_id?: string | null;
+            /**
+             * Created At
              * @description Creation timestamp
              */
-            created?: string | null;
-            /**
-             * Owner
-             * @description Workspace owner
-             */
-            owner?: string | null;
+            created_at?: string | null;
             /**
              * Status
              * @description Workspace status
@@ -1012,7 +895,8 @@ export interface components {
             total: number;
             /**
              * User Id
-             * @description User ID
+             * Format: uuid
+             * @description User ID requesting the list
              */
             user_id: string;
         };
@@ -1023,6 +907,7 @@ export interface components {
         WorkspaceSecretResponse: {
             /**
              * Workspace Id
+             * Format: uuid
              * @description Workspace ID
              */
             workspace_id: string;
@@ -1060,6 +945,7 @@ export interface components {
         WorkspaceSecretsResponse: {
             /**
              * Workspace Id
+             * Format: uuid
              * @description Workspace ID
              */
             workspace_id: string;
@@ -1086,9 +972,10 @@ export interface components {
         WorkspaceSummary: {
             /**
              * Workspace Id
+             * Format: uuid
              * @description Unique workspace ID
              */
-            workspace_id: string | null;
+            workspace_id: string;
             /**
              * Workspace Name
              * @description Workspace name
@@ -1100,67 +987,25 @@ export interface components {
              */
             namespace: string;
             /**
-             * Tier
-             * @description Workspace tier
+             * User Id
+             * @description User ID who owns the workspace
              */
-            tier: string;
+            user_id?: string | null;
             /**
-             * Created
+             * Organization Id
+             * @description Organization ID
+             */
+            organization_id?: string | null;
+            /**
+             * Created At
              * @description Creation timestamp
              */
-            created: string | null;
-            /**
-             * Owner
-             * @description Workspace owner
-             */
-            owner: string | null;
+            created_at?: string | null;
             /**
              * Status
              * @description Workspace status
              */
             status: string;
-        };
-        /**
-         * WorkspaceTier
-         * @description Workspace tier options
-         * @enum {string}
-         */
-        WorkspaceTier: "community" | "enterprise";
-        /**
-         * WorkspaceTokenResponse
-         * @description Workspace token response
-         */
-        WorkspaceTokenResponse: {
-            /**
-             * Access Token
-             * @description Access token
-             */
-            access_token: string;
-            /**
-             * Token Type
-             * @description Token type
-             */
-            token_type: string;
-            /**
-             * Scope
-             * @description Token scope
-             */
-            scope: string[];
-            /**
-             * Workspace Id
-             * @description Workspace ID
-             */
-            workspace_id: string;
-            /**
-             * Expires In
-             * @description Token expiration in seconds
-             */
-            expires_in: number;
-            /**
-             * Message
-             * @description Additional message
-             */
-            message: string;
         };
     };
     responses: never;
@@ -1273,37 +1118,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkspaceDeleteResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_workspace_token_v1_workspaces__workspace_id__tokens_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                workspace_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkspaceTokenResponse"];
                 };
             };
             /** @description Validation Error */
@@ -1458,7 +1272,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ServerDeployRequest"];
+                "application/json": {
+                    [key: string]: unknown;
+                };
             };
         };
         responses: {
@@ -1582,36 +1398,21 @@ export interface operations {
             };
         };
     };
-    list_registry_servers_v1_registry_servers_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RegistryServersResponse"];
-                };
-            };
-        };
-    };
-    get_registry_server_v1_registry_servers__server_id__get: {
+    restart_workspace_server_v1_workspaces__workspace_id__servers__server_id__restart_post: {
         parameters: {
             query?: never;
             header?: never;
             path: {
+                workspace_id: string;
                 server_id: string;
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServerRestartRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -1619,9 +1420,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ServerRestartResponse"];
                 };
             };
             /** @description Validation Error */
@@ -1635,10 +1434,14 @@ export interface operations {
             };
         };
     };
-    list_registries_v1_registry__get: {
+    validate_auth_v1_token_auth_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Original-URL"?: string | null;
+                "X-Original-Method"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1650,21 +1453,104 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RegistryListResponse"];
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
     };
-    create_registry_v1_registry__post: {
+    validate_auth_v1_token_auth_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                authorization?: string | null;
+                "X-Original-URL"?: string | null;
+                "X-Original-Method"?: string | null;
+            };
             path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_workspace_tokens_v1_workspaces__workspace_id__tokens_get: {
+        parameters: {
+            query?: {
+                k8s_client?: unknown;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_workspace_token_v1_workspaces__workspace_id__tokens_post: {
+        parameters: {
+            query?: {
+                k8s_client?: unknown;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                workspace_id: string;
+            };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RegistryEnableRequest"];
+                "application/json": components["schemas"]["TokenCreateRequest"];
             };
         };
         responses: {
@@ -1674,7 +1560,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RegistryEnableResponse"];
+                    "application/json": components["schemas"]["TokenCreateResponse"];
                 };
             };
             /** @description Validation Error */
@@ -1688,13 +1574,18 @@ export interface operations {
             };
         };
     };
-    get_registry_info_endpoint_v1_registry_info_get: {
+    revoke_workspace_token_v1_workspaces__workspace_id__tokens__token_jti__delete: {
         parameters: {
-            query: {
-                registry_url: string;
+            query?: {
+                k8s_client?: unknown;
             };
-            header?: never;
-            path?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                workspace_id: string;
+                token_jti: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -1705,7 +1596,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RegistryInfo"];
+                    "application/json": components["schemas"]["TokenRevokeResponse"];
                 };
             };
             /** @description Validation Error */

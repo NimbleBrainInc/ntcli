@@ -12,9 +12,10 @@ export async function handleTokenShow(workspaceNameOrId?: string): Promise<void>
     const workspaceStorage = new WorkspaceStorage();
     
     // Check authentication status
-    const authState = await tokenManager.getAuthState();
-    
-    if (!authState.isAuthenticated) {
+    const isAuthenticated = await tokenManager.isAuthenticated();
+    const userInfo = await tokenManager.getUserInfo();
+
+    if (!isAuthenticated) {
       console.log(chalk.red('❌ Not authenticated'));
       console.log(chalk.yellow('   Please run `ntcli auth login` first'));
       return;
@@ -22,28 +23,11 @@ export async function handleTokenShow(workspaceNameOrId?: string): Promise<void>
 
     console.log(chalk.blue.bold('🔑 Token Status'));
     console.log();
-    
-    // Show Clerk authentication status
-    console.log(`${chalk.gray('Clerk Auth:')} ${chalk.green('✅ Authenticated')}`);
-    if (authState.user) {
-      console.log(`${chalk.gray('User Email:')} ${authState.user.email}`);
-      if (authState.user.username) {
-        console.log(`${chalk.gray('Username:')} ${authState.user.username}`);
-      }
-    }
-    
-    // Show Clerk token expiration
-    if (authState.tokens) {
-      const clerkExpiresAt = new Date(authState.tokens.expiresAt);
-      const now = new Date();
-      const clerkMinutesLeft = Math.floor((clerkExpiresAt.getTime() - now.getTime()) / (1000 * 60));
-      
-      console.log(`${chalk.gray('Clerk Token Expires:')} ${chalk.cyan(clerkExpiresAt.toLocaleString())}`);
-      if (clerkMinutesLeft > 0) {
-        console.log(`${chalk.gray('Clerk Token Valid For:')} ${chalk.green(`${Math.floor(clerkMinutesLeft / 60)} hours ${clerkMinutesLeft % 60} minutes`)}`);
-      } else {
-        console.log(`${chalk.gray('Clerk Token Valid For:')} ${chalk.red('Expired')}`);
-      }
+
+    // Show authentication status
+    console.log(`${chalk.gray('API Auth:')} ${chalk.green('✅ Authenticated')}`);
+    if (userInfo) {
+      console.log(`${chalk.gray('User Email:')} ${userInfo.email}`);
     }
     
     console.log();

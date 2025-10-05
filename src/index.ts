@@ -1,19 +1,37 @@
 #!/usr/bin/env node
 
+import { config } from "dotenv";
+
+// Load environment variables at the very start
+const nodeEnv = process.env.NODE_ENV;
+const envFiles = [
+  ...(nodeEnv ? [`.env.${nodeEnv}.local`, `.env.${nodeEnv}`] : []),
+  `.env.local`,
+  `.env`
+];
+
+// Load env files in order of priority (first found wins for each variable)
+envFiles.forEach(file => {
+  config({ path: file, quiet: true });
+});
+
 import chalk from "chalk";
 import { Command } from "commander";
 import { createRequire } from "module";
-
-const require = createRequire(import.meta.url);
-const { version } = require("../package.json");
 import { handleLogin } from "./commands/auth/login.js";
 import { handleLogout } from "./commands/auth/logout.js";
 import { handleSignup } from "./commands/auth/signup.js";
 import { handleStatus } from "./commands/auth/status.js";
+import { handleConfigReset } from "./commands/config/reset.js";
+import { handleConfigShow } from "./commands/config/show.js";
+import { handleDomainSet } from "./commands/domain/set.js";
+import { handleDomainShow } from "./commands/domain/show.js";
 import { handleHealthCheck } from "./commands/health.js";
+import { handleInfo } from "./commands/info.js";
 import { handleMCPCall } from "./commands/mcp/call.js";
 import { handleMCPConnect } from "./commands/mcp/connect.js";
 import { handleMCPTools } from "./commands/mcp/tools.js";
+import { handleRegistryCreate } from "./commands/registry/create.js";
 import { handleRegistryList } from "./commands/registry/list.js";
 import { handleRegistryShow } from "./commands/registry/show.js";
 import { handleSecretsList } from "./commands/secrets/list.js";
@@ -25,12 +43,13 @@ import { handleServerInfo } from "./commands/server/info.js";
 import { handleServerList } from "./commands/server/list.js";
 import { handleServerLogs } from "./commands/server/logs.js";
 import { handleServerRemove } from "./commands/server/remove.js";
+import { handleServerRestart } from "./commands/server/restart.js";
 import { handleServerScale } from "./commands/server/scale.js";
-import { handleTokenRefresh } from "./commands/token/refresh.js";
-import { handleTokenShow } from "./commands/token/show.js";
 import { handleTokenCreate } from "./commands/token/create.js";
-import { handleTokenRevoke } from "./commands/token/revoke.js";
 import { handleTokenList } from "./commands/token/list.js";
+import { handleTokenRefresh } from "./commands/token/refresh.js";
+import { handleTokenRevoke } from "./commands/token/revoke.js";
+import { handleTokenShow } from "./commands/token/show.js";
 import { handleWorkspaceClear } from "./commands/workspace/clear.js";
 import { handleWorkspaceCreate } from "./commands/workspace/create.js";
 import { handleWorkspaceDelete } from "./commands/workspace/delete.js";
@@ -38,11 +57,9 @@ import { handleWorkspaceList } from "./commands/workspace/list.js";
 import { handleWorkspaceSelect } from "./commands/workspace/select.js";
 import { handleWorkspaceSwitch } from "./commands/workspace/switch.js";
 import { handleWorkspaceSync } from "./commands/workspace/sync.js";
-import { handleConfigReset } from "./commands/config/reset.js";
-import { handleConfigShow } from "./commands/config/show.js";
-import { handleDomainSet } from "./commands/domain/set.js";
-import { handleDomainShow } from "./commands/domain/show.js";
-import { handleInfo } from "./commands/info.js";
+
+const require = createRequire(import.meta.url);
+const { version } = require("../package.json");
 
 /**
  * Main CLI application entry point
@@ -367,6 +384,26 @@ async function main() {
       }
     });
 
+  // Registry create command
+  registryCommand
+    .command("create <url>")
+    .description("Create/enable a new registry from a URL")
+    .option("-n, --namespace <namespace>", "Override namespace name")
+    .option("-v, --verbose", "Show additional debug information")
+    .action(async (url, options) => {
+      try {
+        await handleRegistryCreate(url, options);
+      } catch (error) {
+        console.error(
+          chalk.red(
+            "Registry create failed:",
+            error instanceof Error ? error.message : "Unknown error"
+          )
+        );
+        process.exit(1);
+      }
+    });
+
   // Server command group
   const serverCommand = program
     .command("server")
@@ -499,6 +536,30 @@ async function main() {
       }
     });
 
+  // Server restart command
+  serverCommand
+    .command("restart <server-id>")
+    .description("Restart a server deployment")
+    .option(
+      "-w, --workspace <id>",
+      "Target workspace ID (defaults to active workspace)"
+    )
+    .option("-f, --force", "Force restart even if server is running")
+    .option("--verbose", "Show detailed output")
+    .action(async (serverId, options) => {
+      try {
+        await handleServerRestart(serverId, options);
+      } catch (error) {
+        console.error(
+          chalk.red(
+            "Server restart failed:",
+            error instanceof Error ? error.message : "Unknown error"
+          )
+        );
+        process.exit(1);
+      }
+    });
+
   // Server remove command
   serverCommand
     .command("remove <server-id>")
@@ -528,15 +589,28 @@ async function main() {
   serverCommand
     .command("logs <server-id>")
     .description("Get logs for a server in the workspace")
-    .option("-n, --lines <number>", "Number of lines to retrieve", (val) =>
+    .option("--limit <number>", "Maximum number of log entries to return (default: 10, max: 1000)", (val) =>
       parseInt(val, 10)
     )
     .option("-f, --follow", "Follow log output (not implemented yet)")
     .option(
       "--since <time>",
-      "Show logs since timestamp (e.g., 2023-01-01T00:00:00Z, 1h, 30m)"
+      "Show logs since timestamp (e.g., 2024-01-01T00:00:00Z, 1h, 30m, 2d)"
+    )
+    .option(
+      "--until <time>",
+      "Show logs until timestamp (e.g., 2024-01-01T00:00:00Z, 1h, 30m)"
+    )
+    .option(
+      "--level <level>",
+      "Minimum log level to return (debug, info, warning, error, critical)"
+    )
+    .option(
+      "--pod <name>",
+      "Filter logs from a specific pod"
     )
     .option("-t, --timestamps", "Show timestamps in log output")
+    .option("--json", "Output logs in JSON format")
     .option(
       "-w, --workspace <id>",
       "Target workspace ID (defaults to active workspace)"
@@ -807,7 +881,7 @@ async function main() {
   // Token create command
   tokenCommand
     .command("create [workspace]")
-    .description("Create new workspace token (not persisted to local storage)")
+    .description("Create new workspace token and save to local storage")
     .option("-w, --workspace <id>", "Target workspace ID or name")
     .option(
       "--expires-in <seconds>",
@@ -819,6 +893,7 @@ async function main() {
       "Token expires at unix timestamp",
       (val: string) => parseInt(val, 10)
     )
+    .option("--no-save", "Create token without saving to local configuration")
     .action(async (workspace, options) => {
       try {
         await handleTokenCreate(workspace, options);

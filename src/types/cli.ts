@@ -9,6 +9,8 @@ export interface WorkspaceCommandOptions {
 export interface RegistryCommandOptions {
   limit?: number;
   verbose?: boolean;
+  namespace?: string;
+  version?: string;
 }
 
 export interface SecretsCommandOptions {

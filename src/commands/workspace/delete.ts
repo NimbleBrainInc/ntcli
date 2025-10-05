@@ -60,12 +60,12 @@ export async function handleWorkspaceDelete(
     
     spinner.text = '🗑️  Deleting workspace from API...';
     
-    // Try to delete workspace via API using Clerk ID token
-    const clerkIdToken = await tokenManager.getValidClerkIdToken();
+    // Try to delete workspace via API using NimbleBrain bearer token
+    const nimblebrainToken = await tokenManager.getNimbleBrainToken();
     
     const apiClient = new ManagementClient();
-    if (clerkIdToken) {
-      apiClient.setClerkJwtToken(clerkIdToken);
+    if (nimblebrainToken) {
+      apiClient.setBearerToken(nimblebrainToken);
     }
     
     if (process.env.NTCLI_DEBUG) {

@@ -60,15 +60,14 @@ export async function handleMCPTools(
     // Construct MCP endpoint URL
     const workspaceUuid = extractWorkspaceUuid(workspaceId);
     const configManager = new ConfigManager();
-    const mcpEndpoint = `${configManager.getMcpApiUrl()}/${workspaceUuid}/${serverId}/mcp`;
+    const mcpEndpoint = `${configManager.getMcpApiUrl()}/${workspaceUuid}/${encodeURIComponent(serverId)}/mcp`;
 
     // Always show the MCP endpoint URL for debugging
     console.error(`🔧 MCP Endpoint: ${mcpEndpoint}`);
 
     // Connect to MCP server
-    // Get workspace token for MCP client (if available)
-    const configManagerForToken = new ConfigManager();
-    const workspaceToken = configManagerForToken.getWorkspaceToken(finalWorkspaceId);
+    // Get workspace token for MCP data plane operations (optional)
+    const workspaceToken = workspaceManager.getWorkspaceToken(finalWorkspaceId);
 
     const mcpClient = new MCPClient(mcpEndpoint, workspaceToken || undefined);
     

@@ -7,14 +7,15 @@ import { WorkspaceManager } from '../../lib/workspace/workspace-manager.js';
 import { WorkspaceInfo } from '../../types/index.js';
 
 /**
- * Create new workspace token using NimbleTools JWT (without persisting it)
+ * Create new workspace token using NimbleTools JWT
  */
 export async function handleTokenCreate(
   workspaceNameOrId?: string,
-  options: { 
+  options: {
     workspace?: string;
     expiresIn?: number;
     expiresAt?: number;
+    noSave?: boolean;
   } = {}
 ): Promise<void> {
   try {
@@ -25,8 +26,8 @@ export async function handleTokenCreate(
     // Get token manager
     const tokenManager = new TokenManager();
 
-    // Try to get valid Clerk JWT token (we need the ID token for the API call)
-    const clerkIdToken = await tokenManager.getValidClerkIdToken();
+    // Try to get valid NimbleBrain bearer token (we need the ID token for the API call)
+    const nimblebrainToken = await tokenManager.getNimbleBrainToken();
 
     let targetWorkspace;
     let serverWorkspaceInfo: WorkspaceInfo | null = null;
@@ -41,10 +42,10 @@ export async function handleTokenCreate(
         // Not found locally, check the server
         console.log(chalk.yellow(`   Workspace '${workspaceIdentifier}' not found locally, checking server...`));
         
-        // Initialize API client with Clerk ID token
+        // Initialize API client with NimbleBrain bearer token
         const apiClient = new ManagementClient();
-        if (clerkIdToken) {
-          apiClient.setClerkJwtToken(clerkIdToken);
+        if (nimblebrainToken) {
+          apiClient.setBearerToken(nimblebrainToken);
         }
         
         try {
@@ -96,10 +97,10 @@ export async function handleTokenCreate(
 
     const spinner = ora(`🔄 Creating new token for workspace: ${targetWorkspace.workspace_name}...`).start();
 
-    // Initialize API client with Clerk ID token
+    // Initialize API client with NimbleBrain bearer token
     const apiClient = new ManagementClient();
-    if (clerkIdToken) {
-      apiClient.setClerkJwtToken(clerkIdToken);
+    if (nimblebrainToken) {
+      apiClient.setBearerToken(nimblebrainToken);
     }
     
     // Prepare token options
@@ -118,26 +119,70 @@ export async function handleTokenCreate(
       spinner.text = '🔄 Creating new workspace token (expires in 1 year)...';
     }
     
-    // Generate new workspace token (without persisting)
+    // Generate new workspace token
     const tokenResponse = await apiClient.generateWorkspaceToken(targetWorkspace.workspace_id, tokenOptions);
 
+    // Save token to config unless --no-save flag is used
+    if (!options.noSave) {
+      spinner.text = '💾 Saving token to local configuration...';
+
+      // Handle non-expiring tokens (expires_in is null)
+      const expiresIn = tokenResponse.expires_in || (365 * 24 * 60 * 60); // Default to 1 year for non-expiring tokens
+
+      // If this workspace came from server (not local), we need to create it first
+      if (serverWorkspaceInfo) {
+        // Create the workspace locally with the new token
+        const createWorkspaceResponse = {
+          workspace_name: serverWorkspaceInfo.workspace_name,
+          workspace_id: targetWorkspace.workspace_id,
+          namespace: `ns-${serverWorkspaceInfo.workspace_name}`,
+          created: serverWorkspaceInfo.created,
+          status: 'active',
+          message: 'Token created for existing server workspace',
+          access_token: tokenResponse.access_token,
+          token_type: tokenResponse.token_type,
+          expires_in: expiresIn,
+          scope: tokenResponse.scope || [],
+          ...(tokenResponse.jti && { jti: tokenResponse.jti })
+        };
+
+        configManager.addWorkspace(createWorkspaceResponse);
+      } else {
+        // Update existing local workspace
+        const updateSuccess = configManager.updateWorkspaceToken(
+          targetWorkspace.workspace_id,
+          tokenResponse.access_token,
+          tokenResponse.token_type,
+          expiresIn,
+          tokenResponse.scope,
+          tokenResponse.jti
+        );
+
+        if (!updateSuccess) {
+          spinner.fail('❌ Failed to save workspace token');
+          console.error(chalk.red('   Could not update local workspace storage'));
+          console.error(chalk.yellow('   Token was created but not saved. You can save it manually or use --no-save flag'));
+        }
+      }
+    }
+
     spinner.succeed('✅ New workspace token created successfully');
-    
+
     console.log();
     console.log(chalk.green('🎉 New workspace token generated!'));
     console.log();
     console.log(`${chalk.gray('Workspace:')} ${targetWorkspace.workspace_name} (${targetWorkspace.workspace_id})`);
-    
+
     const expiresAt = new Date(Date.now() + (tokenResponse.expires_in * 1000));
     console.log(`${chalk.gray('Token expires:')} ${expiresAt.toLocaleString()}`);
     console.log(`${chalk.gray('Valid for:')} ${Math.floor(tokenResponse.expires_in / 60)} minutes`);
-    
+
     if (tokenResponse.jti) {
       console.log(`${chalk.gray('Token ID (JTI):')} ${tokenResponse.jti}`);
     }
-    
+
     console.log(`${chalk.gray('Token ending in:')} ...${tokenResponse.access_token.slice(-8)}`);
-    
+
     if (tokenResponse.message) {
       console.log(`${chalk.gray('Message:')} ${tokenResponse.message}`);
     }
@@ -170,8 +215,13 @@ export async function handleTokenCreate(
     }
     console.log();
     console.log(chalk.yellow('⚠️  Keep this token secure - do not share it publicly'));
-    console.log(chalk.yellow('⚠️  This token was NOT saved to your local workspace configuration'));
-    console.log(chalk.cyan('💡 Use `ntcli token refresh` to update your saved workspace token'));
+    if (options.noSave) {
+      console.log(chalk.yellow('⚠️  This token was NOT saved to your local workspace configuration'));
+      console.log(chalk.cyan('💡 Use `ntcli token create` without --no-save to save the token'));
+    } else {
+      console.log(chalk.green('✓  Token saved to local workspace configuration'));
+      console.log(chalk.cyan('💡 You can now use workspace-specific commands with this token'));
+    }
     console.log();
     
   } catch (error) {

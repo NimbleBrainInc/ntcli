@@ -28,10 +28,10 @@ export async function handleWorkspaceSwitch(
       // Not found locally, check the server
       spinner.text = '🌐 Checking server for workspace...';
       
-      // Try to get Clerk JWT token (if available)
-      const clerkJwt = await tokenManager.getValidClerkIdToken();
-      if (clerkJwt) {
-        apiClient.setClerkJwtToken(clerkJwt);
+      // Try to get NimbleBrain bearer token (if available)
+      const nimblebrainToken = await tokenManager.getNimbleBrainToken();
+      if (nimblebrainToken) {
+        apiClient.setBearerToken(nimblebrainToken);
       }
       
       try {
@@ -98,11 +98,7 @@ export async function handleWorkspaceSwitch(
       const tokenInfo = configManager.getTokenExpirationInfo(workspace.workspace_id);
       if (tokenInfo && !tokenInfo.isExpired) {
         console.log(chalk.cyan(`   🔑 Access token available (expires in ${tokenInfo.minutesRemaining} minutes)`));
-      } else {
-        console.log(chalk.yellow('   ⚠️  Access token expired - you may need to recreate this workspace'));
       }
-    } else {
-      console.log(chalk.yellow('   ⚠️  No access token stored - you may need to recreate this workspace'));
     }
     
   } catch (error) {

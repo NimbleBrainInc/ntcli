@@ -24,8 +24,8 @@ export async function handleTokenList(
     // Get token manager
     const tokenManager = new TokenManager();
 
-    // Try to get valid Clerk JWT token (we need the ID token for the API call)
-    const clerkIdToken = await tokenManager.getValidClerkIdToken();
+    // Try to get valid NimbleBrain bearer token (we need the ID token for the API call)
+    const nimblebrainToken = await tokenManager.getNimbleBrainToken();
 
     let targetWorkspace;
     let serverWorkspaceInfo: WorkspaceInfo | null = null;
@@ -40,10 +40,10 @@ export async function handleTokenList(
         // Not found locally, check the server
         console.log(chalk.yellow(`   Workspace '${workspaceIdentifier}' not found locally, checking server...`));
         
-        // Initialize API client with Clerk ID token
+        // Initialize API client with NimbleBrain bearer token
         const apiClient = new ManagementClient();
-        if (clerkIdToken) {
-          apiClient.setClerkJwtToken(clerkIdToken);
+        if (nimblebrainToken) {
+          apiClient.setBearerToken(nimblebrainToken);
         }
         
         try {
@@ -100,8 +100,7 @@ export async function handleTokenList(
     if (!authResult) {
       spinner.fail('❌ No valid workspace token');
       console.log(chalk.yellow('   This workspace does not have a valid access token.'));
-      console.log(chalk.yellow('   Workspace tokens are required to list tokens.'));
-      console.log(chalk.cyan('   Please refresh your workspace token: `ntcli token refresh`'));
+      console.log(chalk.yellow('   Please login to continue: `ntcli auth login`'));
       process.exit(1);
     }
 
@@ -214,7 +213,7 @@ export async function handleTokenList(
       }
       
       if (error.isAuthError()) {
-        console.log(chalk.yellow('   💡 Try running `ntcli token refresh` to refresh your workspace token'));
+        console.log(chalk.yellow('   💡 Try running `ntcli auth login` to refresh your authentication'));
       } else if (error.isNotFoundError()) {
         console.log(chalk.yellow('   💡 Workspace not found or not accessible'));
       } else if (error.statusCode === 503) {

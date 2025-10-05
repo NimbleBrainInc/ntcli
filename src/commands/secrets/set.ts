@@ -100,7 +100,7 @@ export async function handleSecretsSet(
       }
       
       if (error.isAuthError()) {
-        console.log(chalk.yellow('   💡 Try running `ntcli token refresh` to refresh your workspace token'));
+        console.log(chalk.yellow('   💡 Try running `ntcli auth login` to refresh your authentication'));
       } else if (error.isNotFoundError()) {
         console.log(chalk.yellow('   💡 Workspace not found or not accessible'));
       } else if (error.statusCode === 403) {

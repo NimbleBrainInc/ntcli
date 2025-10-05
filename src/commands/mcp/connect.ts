@@ -43,7 +43,7 @@ export async function handleMCPConnect(
 
     const { client: apiClient, workspaceId: finalWorkspaceId } = authResult;
     const configManager = new ConfigManager();
-    
+
     // Extract UUID from workspace ID for API calls
     const extractWorkspaceUuid = (workspaceId: string): string => {
       const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -55,8 +55,8 @@ export async function handleMCPConnect(
     
     // Construct MCP endpoint URL
     const workspaceUuid = extractWorkspaceUuid(workspaceId);
-    const mcpEndpoint = `${configManager.getMcpApiUrl()}/${workspaceUuid}/${serverId}/mcp`;
-    
+    const mcpEndpoint = `${configManager.getMcpApiUrl()}/${workspaceUuid}/${encodeURIComponent(serverId)}/mcp`;
+
     if (process.env.NTCLI_DEBUG) {
       console.error(`🔧 MCP Endpoint: ${mcpEndpoint}`);
     }
@@ -68,9 +68,9 @@ export async function handleMCPConnect(
 
     // Connect to MCP server
     spinner.text = `🔌 Initializing MCP connection...`;
-    
-    // Get workspace token for MCP client (if available)
-    const workspaceToken = configManager.getWorkspaceToken(finalWorkspaceId);
+
+    // Get workspace token for MCP data plane operations (optional)
+    const workspaceToken = workspaceManager.getWorkspaceToken(finalWorkspaceId);
 
     const mcpClient = new MCPClient(mcpEndpoint, workspaceToken || undefined);
     

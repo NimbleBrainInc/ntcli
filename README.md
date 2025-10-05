@@ -29,7 +29,7 @@ ntcli workspace create my-project
 
 # Deploy and test an MCP server
 ntcli registry list
-ntcli server deploy nationalparks-mcp
+ntcli server deploy ai.nimbletools/nationalparks-mcp
 ntcli secrets set NPS_API_KEY=YOUR_API_KEY
 ntcli mcp call nationalparks-mcp search_parks --arg query="Yellowstone"
 

@@ -16,6 +16,8 @@ import {
   RefreshWorkspaceTokenResponse,
   RegistryServerFilters,
   RemoveServerResponse,
+  RestartServerRequest,
+  RestartServerResponse,
   ScaleServerRequest,
   ScaleServerResponse,
   ServerLogsRequest,
@@ -93,10 +95,18 @@ export class ManagementClient {
   }
 
   /**
+   * Set bearer token for API authentication
+   */
+  setBearerToken(token: string): void {
+    this.authProvider.setToken(token);
+  }
+
+  /**
    * Set Clerk JWT token for workspace operations that require Clerk auth
+   * @deprecated Use setBearerToken instead
    */
   setClerkJwtToken(token: string): void {
-    this.authProvider.setToken(token);
+    this.setBearerToken(token);
   }
 
   /**
@@ -111,6 +121,13 @@ export class ManagementClient {
    */
   clearAuth(): void {
     this.authProvider.clearAuth();
+  }
+
+  /**
+   * Get authentication headers
+   */
+  getAuthHeaders(): Record<string, string> {
+    return this.authProvider.getAuthHeaders();
   }
 
   /**
@@ -287,8 +304,8 @@ export class ManagementClient {
   ): Promise<{ message: string }> {
     const uuid = this.extractWorkspaceUuid(workspaceId);
     return this.makeRequest<{ message: string }>(
-      "POST",
-      `/v1/workspaces/${uuid}/tokens/${jti}/revoke`
+      "DELETE",
+      `/v1/workspaces/${uuid}/tokens/${jti}`
     );
   }
 
@@ -354,7 +371,29 @@ export class ManagementClient {
   ): Promise<GetRegistryServerResponse> {
     return this.makeRequest<GetRegistryServerResponse>(
       "GET",
-      `/v1/registry/servers/${serverId}`
+      `/v1/registry/servers/${encodeURIComponent(serverId)}`
+    );
+  }
+
+  /**
+   * Create/enable a new registry
+   */
+  async createRegistry(
+    registryUrl: string,
+    namespaceOverride?: string
+  ): Promise<{ registry_name: string; namespace: string; registry_url: string; message: string }> {
+    const body: { registry_url: string; namespace_override?: string } = {
+      registry_url: registryUrl
+    };
+    
+    if (namespaceOverride) {
+      body.namespace_override = namespaceOverride;
+    }
+
+    return this.makeRequest<{ registry_name: string; namespace: string; registry_url: string; message: string }>(
+      "POST",
+      "/v1/registry/",
+      body
     );
   }
 
@@ -398,7 +437,7 @@ export class ManagementClient {
     const uuid = this.extractWorkspaceUuid(workspaceId);
     return this.makeRequest<GetWorkspaceServerResponse>(
       "GET",
-      `/v1/workspaces/${uuid}/servers/${serverId}`
+      `/v1/workspaces/${uuid}/servers/${encodeURIComponent(serverId)}`
     );
   }
 
@@ -413,7 +452,23 @@ export class ManagementClient {
     const uuid = this.extractWorkspaceUuid(workspaceId);
     return this.makeRequest<ScaleServerResponse>(
       "POST",
-      `/v1/workspaces/${uuid}/servers/${serverId}/scale`,
+      `/v1/workspaces/${uuid}/servers/${encodeURIComponent(serverId)}/scale`,
+      request
+    );
+  }
+
+  /**
+   * Restart a server in a workspace
+   */
+  async restartServer(
+    workspaceId: string,
+    serverId: string,
+    request: RestartServerRequest = {}
+  ): Promise<RestartServerResponse> {
+    const uuid = this.extractWorkspaceUuid(workspaceId);
+    return this.makeRequest<RestartServerResponse>(
+      "POST",
+      `/v1/workspaces/${uuid}/servers/${encodeURIComponent(serverId)}/restart`,
       request
     );
   }
@@ -428,7 +483,7 @@ export class ManagementClient {
     const uuid = this.extractWorkspaceUuid(workspaceId);
     return this.makeRequest<RemoveServerResponse>(
       "DELETE",
-      `/v1/workspaces/${uuid}/servers/${serverId}`
+      `/v1/workspaces/${uuid}/servers/${encodeURIComponent(serverId)}`
     );
   }
 
@@ -443,26 +498,30 @@ export class ManagementClient {
     const uuid = this.extractWorkspaceUuid(workspaceId);
     const queryParams = new URLSearchParams();
 
-    if (request.lines !== undefined) {
-      queryParams.append("lines", request.lines.toString());
-    }
-
-    if (request.follow !== undefined) {
-      queryParams.append("follow", request.follow.toString());
+    if (request.limit !== undefined) {
+      queryParams.append("limit", request.limit.toString());
     }
 
     if (request.since !== undefined) {
       queryParams.append("since", request.since);
     }
 
-    if (request.timestamps !== undefined) {
-      queryParams.append("timestamps", request.timestamps.toString());
+    if (request.until !== undefined) {
+      queryParams.append("until", request.until);
+    }
+
+    if (request.level !== undefined) {
+      queryParams.append("level", request.level);
+    }
+
+    if (request.pod_name !== undefined) {
+      queryParams.append("pod_name", request.pod_name);
     }
 
     const queryString = queryParams.toString();
     const endpoint = queryString
-      ? `/v1/workspaces/${uuid}/servers/${serverId}/logs?${queryString}`
-      : `/v1/workspaces/${uuid}/servers/${serverId}/logs`;
+      ? `/v1/workspaces/${uuid}/servers/${encodeURIComponent(serverId)}/logs?${queryString}`
+      : `/v1/workspaces/${uuid}/servers/${encodeURIComponent(serverId)}/logs`;
 
     return this.makeRequest<ServerLogsResponse>("GET", endpoint);
   }
@@ -580,7 +639,7 @@ export class ManagementApiError extends Error {
       case "WORKSPACE_EXISTS":
         return "A workspace with this name already exists";
       case "TOKEN_EXPIRED":
-        return "Authentication token has expired - please refresh your workspace token using `ntcli token refresh`";
+        return "Authentication token has expired - please login again using `ntcli auth login`";
       case "TOKEN_EXCHANGE_FAILED":
         return "Failed to exchange authentication token - please login again";
       case "INVALID_REQUEST":
@@ -593,7 +652,7 @@ export class ManagementApiError extends Error {
         return "Server returned an unexpected response format";
       default:
         if (this.statusCode === 401) {
-          return "Authentication failed - please refresh your workspace token using `ntcli token refresh`";
+          return "Authentication failed - please login again using `ntcli auth login`";
         } else if (this.statusCode === 404) {
           return this.message.includes("404 Not Found")
             ? "API endpoint not found - this may be a server configuration issue"

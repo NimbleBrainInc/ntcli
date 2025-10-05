@@ -2,31 +2,14 @@
 
 # Simple JWT decoder script
 # Usage: ./decode-jwt.sh <jwt-token>
-#   or:  ./decode-jwt.sh (reads from ~/.nimbletools/tokens.json)
 
 if [ $# -eq 0 ]; then
-    # No argument provided, try to read from tokens file
-    TOKENS_FILE="$HOME/.nimbletools/tokens.json"
-    if [ ! -f "$TOKENS_FILE" ]; then
-        echo "Error: No JWT token provided and $TOKENS_FILE not found"
-        echo "Usage: $0 <jwt-token>"
-        exit 1
-    fi
-    
-    # Extract idToken from JSON file (handles multiline JSON)
-    JWT=$(cat "$TOKENS_FILE" | jq -r '.idToken // empty' 2>/dev/null)
-    if [ -z "$JWT" ]; then
-        # Fallback: try grep approach for non-jq systems
-        JWT=$(cat "$TOKENS_FILE" | tr -d '\n' | grep -o '"idToken":"[^"]*"' | cut -d'"' -f4)
-    fi
-    if [ -z "$JWT" ]; then
-        echo "Error: Could not find idToken in $TOKENS_FILE"
-        exit 1
-    fi
-    echo "🔍 Decoding idToken from $TOKENS_FILE"
-else
-    JWT="$1"
+    echo "Error: No JWT token provided"
+    echo "Usage: $0 <jwt-token>"
+    exit 1
 fi
+
+JWT="$1"
 
 # Check if JWT has 3 parts
 if [ $(echo "$JWT" | tr -cd '.' | wc -c) -ne 2 ]; then

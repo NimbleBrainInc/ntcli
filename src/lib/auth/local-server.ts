@@ -35,7 +35,18 @@ export class LocalCallbackServer {
 
     // OAuth callback endpoint
     this.app.get(this.config.path, (req, res) => {
-      const { code, state, error, error_description } = req.query;
+      const { code, state, error, error_description, ...otherParams } = req.query;
+
+      // Log callback parameters only in debug mode
+      if (process.env.NTCLI_DEBUG) {
+        console.log('[DEBUG] OAuth callback received with params:', {
+          code: code ? `${(code as string).substring(0, 10)}...` : undefined,
+          state,
+          error,
+          error_description,
+          otherParams: Object.keys(otherParams).length > 0 ? otherParams : 'none'
+        });
+      }
 
       if (error) {
         const errorMessage = error_description || error;
@@ -53,10 +64,12 @@ export class LocalCallbackServer {
       // Send success page to browser
       this.sendSuccessResponse(res);
 
-      // Resolve the callback promise
+      // Resolve the callback promise with all parameters
+      // This allows us to capture any additional Clerk-specific params
       this.callbackResolve?.({
         code: code as string,
-        state: state as string
+        state: state as string,
+        ...otherParams
       });
     });
 
