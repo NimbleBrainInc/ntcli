@@ -1,6 +1,6 @@
 {
   "name": "@nimbletools/ntcli",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Command-line interface for NimbleTools MCP Platform - deploy, manage, and integrate MCP servers",
   "keywords": [
     "mcp",
