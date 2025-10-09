@@ -1,11 +1,11 @@
 import chalk from 'chalk';
-import ora from 'ora';
 import open from 'open';
+import ora from 'ora';
 import { v4 as uuidv4 } from 'uuid';
 import { ClerkOAuthClient } from '../../lib/auth/clerk-oauth-client.js';
-import { TokenManager } from '../../lib/auth/token-manager.js';
 import { LocalCallbackServer } from '../../lib/auth/local-server.js';
 import { TokenExchangeClient } from '../../lib/auth/token-exchange.js';
+import { TokenManager } from '../../lib/auth/token-manager.js';
 import { Config } from '../../lib/config.js';
 import { AuthCommandOptions } from '../../types/index.js';
 
@@ -91,7 +91,7 @@ export async function handleLogin(options: AuthCommandOptions = {}): Promise<voi
         callbackResponse.code,
         pkceChallenge.codeVerifier
       );
-      
+
       waitSpinner.text = '👤 Fetching user information...';
 
       // Fetch user information from Clerk

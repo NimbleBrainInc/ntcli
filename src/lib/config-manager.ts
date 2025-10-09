@@ -195,6 +195,7 @@ export class ConfigManager {
 
   /**
    * Get the Clerk authentication domain
+   * Note: This is independent of the main domain and always defaults to nimblebrain.ai
    */
   getClerkDomain(): string {
     // Use environment variable if set
@@ -202,14 +203,22 @@ export class ConfigManager {
       return process.env.CLERK_OAUTH_DOMAIN;
     }
 
-    // Fall back to deriving from main domain
-    const domain = this.getDomain();
+    // Always use nimblebrain.ai for production Clerk, not derived from main domain
+    return 'clerk.nimblebrain.ai';
+  }
 
-    // For localhost, return as-is
-    if (domain.includes('localhost') || domain.includes('127.0.0.1')) {
-      return domain;
+  /**
+   * Get the Studio API URL (for token exchange)
+   * Note: This is independent of the main domain and always defaults to nimblebrain.ai
+   */
+  getStudioApiUrl(): string {
+    // Use environment variable if set
+    if (process.env.NIMBLEBRAIN_API_URL) {
+      return process.env.NIMBLEBRAIN_API_URL;
     }
-    return `clerk.${domain}`;
+
+    // Always use nimblebrain.ai for Studio API, not derived from main domain
+    return 'https://studio-api.nimblebrain.ai';
   }
 
   // Authentication methods

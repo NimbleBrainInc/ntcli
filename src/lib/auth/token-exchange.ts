@@ -1,3 +1,4 @@
+import { ConfigManager } from '../config-manager.js';
 
 /**
  * Token exchange response from the API
@@ -14,8 +15,13 @@ export class TokenExchangeClient {
   private baseUrl: string;
 
   constructor(baseUrl?: string) {
-    // Use environment variable or default to production URL
-    this.baseUrl = baseUrl || process.env.NIMBLEBRAIN_API_URL || 'https://studio-api.nimblebrain.ai';
+    if (baseUrl) {
+      this.baseUrl = baseUrl;
+    } else {
+      // Use ConfigManager to get the Studio API URL
+      const configManager = new ConfigManager();
+      this.baseUrl = configManager.getStudioApiUrl();
+    }
   }
 
   /**
@@ -23,6 +29,12 @@ export class TokenExchangeClient {
    */
   async exchangeToken(idToken: string): Promise<string> {
     const url = `${this.baseUrl}/api/v1/auth/token-exchange`;
+
+    if (process.env.NTCLI_DEBUG) {
+      console.log('\n[DEBUG] Token Exchange Request:');
+      console.log('  URL:', url);
+      console.log('  ID Token (first 50 chars):', idToken.substring(0, 50) + '...');
+    }
 
     try {
       const response = await fetch(url, {
@@ -35,6 +47,10 @@ export class TokenExchangeClient {
         }),
       });
 
+      if (process.env.NTCLI_DEBUG) {
+        console.log('[DEBUG] Response Status:', response.status);
+      }
+
       if (!response.ok) {
         let errorMessage = '';
         try {
@@ -42,6 +58,10 @@ export class TokenExchangeClient {
           errorMessage = errorBody.detail || errorBody.message || errorBody.error || '';
         } catch {
           errorMessage = await response.text();
+        }
+
+        if (process.env.NTCLI_DEBUG) {
+          console.log('[DEBUG] Error Response:', errorMessage);
         }
 
         // Include status code in error message for better handling
