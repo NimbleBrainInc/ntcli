@@ -20,7 +20,7 @@ export class Config {
    * Get Clerk OAuth configuration
    */
   getClerkConfig(): ClerkOAuthConfig {
-    const clientId = process.env.CLERK_OAUTH_CLIENT_ID || "0MUyvaWYSj4g0lzE";
+    const clientId = process.env.CLERK_OAUTH_CLIENT_ID || "96WRYcxabFktp9wn";
 
     // Get domain from unified config
     const configManager = new ConfigManager();

@@ -74,7 +74,8 @@ async function main() {
     .option("--debug", "Show detailed HTTP debugging (headers, body, errors)")
     .configureOutput({
       writeErr: (str) => process.stderr.write(chalk.red(str)),
-    });
+    })
+    .addHelpText('afterAll', `\nNeed more help? Visit ${chalk.cyan('https://www.nimblebrain.ai/discord')}`);
 
   // Info command
   program
@@ -1062,7 +1063,7 @@ async function main() {
 
   // Parse command line arguments
   try {
-    // Check for global flags before parsing  
+    // Check for global flags before parsing
     if (process.argv.includes("--debug")) {
       process.env.NTCLI_DEBUG = "1";
     }
@@ -1070,7 +1071,10 @@ async function main() {
     await program.parseAsync(process.argv);
   } catch (error) {
     if (error instanceof Error) {
-      console.error(chalk.red(`Error: ${error.message}`));
+      // Don't show error for help/version outputs
+      if (error.message !== '(outputHelp)' && error.message !== '(outputVersion)') {
+        console.error(chalk.red(`Error: ${error.message}`));
+      }
     } else {
       console.error(chalk.red("An unexpected error occurred"));
     }

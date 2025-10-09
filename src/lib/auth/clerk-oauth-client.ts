@@ -8,12 +8,6 @@ import {
   UserInfo,
 } from "../../types/index.js";
 
-// Get Clerk domain from environment or use default
-const DEFAULT_CLERK_OAUTH_DOMAIN = process.env.CLERK_OAUTH_DOMAIN || "clerk.nimbletools.ai";
-
-// Get Clerk OAuth audience from environment
-const CLERK_OAUTH_AUDIENCE = process.env.CLERK_OAUTH_AUDIENCE;
-
 /**
  * Clerk OAuth client implementing OAuth 2.0 with PKCE flow
  */
@@ -60,11 +54,6 @@ export class ClerkOAuthClient {
       code_challenge: pkceChallenge.codeChallenge,
       code_challenge_method: pkceChallenge.codeChallengeMethod,
     });
-
-    // Add audience if configured
-    if (CLERK_OAUTH_AUDIENCE) {
-      params.append("audience", CLERK_OAUTH_AUDIENCE);
-    }
 
     // Use domain from environment variable if available, otherwise use config domain
     const domain = process.env.CLERK_OAUTH_DOMAIN || this.config.domain;
