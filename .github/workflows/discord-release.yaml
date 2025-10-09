@@ -23,5 +23,5 @@ jobs:
           
           curl -H "Content-Type: application/json" \
                -X POST \
-               -d "{\"content\": \"**v${VERSION} release of ${REPO} available now on GitHub**\n${URL}\"}" \
+               -d "{\"content\": \"**${VERSION} release of ${REPO} available now on GitHub**\n${URL}\"}" \
                $DISCORD_WEBHOOK
