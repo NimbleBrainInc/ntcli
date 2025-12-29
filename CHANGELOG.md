@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.2] - 2025-12-29
+
+### Fixed
+- Update registry API endpoints from /v0/ to /v0.1/
+- Update documentation links from docs.nimbletools.ai to docs.nimblebrain.ai
+
+## [0.4.1] - 2025-10-08
+
+### Fixed
+- Update Clerk OAuth configuration for production environment
+
+## [0.4.0] - 2025-10-08
+
+### Changed
+- Version bump for production release
+
 ## [0.3.0] - 2025-08-28
 
 ### Changed

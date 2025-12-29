@@ -37,3 +37,45 @@ If verification fails, fix all issues before proceeding.
 - When API types change, update the codebase to match
 - Don't create new types to work around API changes
 - Ask for clarification if unsure about type changes
+
+## Release Process
+
+**IMPORTANT:** Never edit `package.json` version directly. Use npm commands:
+
+```bash
+# 1. Ensure all changes are committed
+git status
+
+# 2. Run verification
+npm run verify:full
+
+# 3. Bump version (creates git tag automatically)
+npm version patch   # For bug fixes (0.4.1 -> 0.4.2)
+npm version minor   # For new features (0.4.0 -> 0.5.0)
+npm version major   # For breaking changes (0.4.0 -> 1.0.0)
+
+# 4. Update CHANGELOG.md with the new version and changes
+
+# 5. Publish to npm
+npm publish
+
+# 6. Push tags
+git push && git push --tags
+```
+
+**Changelog format:**
+```markdown
+## [x.y.z] - YYYY-MM-DD
+
+### Added
+- New features
+
+### Changed
+- Changes to existing features
+
+### Fixed
+- Bug fixes
+
+### Removed
+- Removed features
+```
