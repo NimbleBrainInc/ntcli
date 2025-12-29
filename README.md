@@ -448,7 +448,7 @@ Apache 2.0 - see [LICENSE](LICENSE) for details.
 
 ## Support
 
-- 📖 **Documentation**: [docs.nimbletools.ai](https://docs.nimbletools.ai/) | [QUICKSTART.md](QUICKSTART.md) | [DEVELOPMENT.md](DEVELOPMENT.md)
+- 📖 **Documentation**: [docs.nimblebrain.ai](https://docs.nimblebrain.ai/runtime/introduction) | [QUICKSTART.md](QUICKSTART.md) | [DEVELOPMENT.md](DEVELOPMENT.md)
 - 🐛 **Issues**: [GitHub Issues](https://github.com/nimbletools/ntcli/issues)
 - 🌐 **Website**: [nimbletools.ai](https://www.nimbletools.ai)
 

@@ -19,7 +19,7 @@ export async function handleInfo(options: { discord?: boolean; docs?: boolean; v
     if (options.docs) {
       console.log(chalk.cyan('🔗 Opening documentation...'));
       const open = await import('open');
-      await open.default('https://docs.nimbletools.ai');
+      await open.default('https://docs.nimblebrain.ai/runtime/introduction');
       return;
     }
 
@@ -28,7 +28,7 @@ export async function handleInfo(options: { discord?: boolean; docs?: boolean; v
 
     // Platform links
     console.log(chalk.blue.bold('🌐 Links'));
-    console.log(`  ${chalk.gray('Documentation:')} ${chalk.cyan('https://docs.nimbletools.ai')}`);
+    console.log(`  ${chalk.gray('Documentation:')} ${chalk.cyan('https://docs.nimblebrain.ai/runtime/introduction')}`);
     console.log(`  ${chalk.gray('GitHub:')} ${chalk.cyan('https://github.com/nimbletools/ntcli')}`);
     console.log(`  ${chalk.gray('Discord Community:')} ${chalk.cyan('https://www.nimbletools.ai/discord')}`);
     console.log(`  ${chalk.gray('Website:')} ${chalk.cyan('https://nimbletools.ai')}`);

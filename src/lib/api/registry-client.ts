@@ -128,7 +128,7 @@ export class RegistryClient {
       params.limit = options.limit.toString();
     }
 
-    return this.makeRequest<RegistryListServersResponse>('GET', '/v0/servers', params);
+    return this.makeRequest<RegistryListServersResponse>('GET', '/v0.1/servers', params);
   }
 
   /**
@@ -144,14 +144,14 @@ export class RegistryClient {
       params.version = version;
     }
 
-    return this.makeRequest<MCPServerDefinition>('GET', `/v0/servers/${encodeURIComponent(serverId)}`, params);
+    return this.makeRequest<MCPServerDefinition>('GET', `/v0.1/servers/${encodeURIComponent(serverId)}`, params);
   }
 
   /**
    * Get available versions for a server
    */
   async getServerVersions(serverId: string): Promise<ServerVersionsResponse> {
-    return this.makeRequest<ServerVersionsResponse>('GET', `/v0/servers/${encodeURIComponent(serverId)}/versions`);
+    return this.makeRequest<ServerVersionsResponse>('GET', `/v0.1/servers/${encodeURIComponent(serverId)}/versions`);
   }
 }
 
