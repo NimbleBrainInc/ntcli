@@ -1,7 +1,11 @@
-import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
-import { join } from 'path';
-import { homedir } from 'os';
-import { CreateWorkspaceResponse, UserInfo, NimbleBrainAuth } from '../types/index.js';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { homedir } from "os";
+import { join } from "path";
+import {
+  CreateWorkspaceResponse,
+  NimbleBrainAuth,
+  UserInfo,
+} from "../types/index.js";
 
 /**
  * Local workspace information for CLI
@@ -47,8 +51,8 @@ export class ConfigManager {
   private config: UnifiedConfig | null = null;
 
   constructor() {
-    this.configDir = join(homedir(), '.ntcli');
-    this.configFile = join(this.configDir, 'config.json');
+    this.configDir = join(homedir(), ".ntcli");
+    this.configFile = join(this.configDir, "config.json");
     this.ensureConfigDir();
   }
 
@@ -71,28 +75,28 @@ export class ConfigManager {
 
     if (!existsSync(this.configFile)) {
       this.config = {
-        version: '1.0.0',
+        version: "1.0.0",
         lastUpdated: new Date().toISOString(),
         workspaces: {
-          items: {}
-        }
+          items: {},
+        },
       };
       this.saveConfig();
       return this.config;
     }
 
     try {
-      const configJson = readFileSync(this.configFile, 'utf8');
+      const configJson = readFileSync(this.configFile, "utf8");
       this.config = JSON.parse(configJson) as UnifiedConfig;
       return this.config;
     } catch {
       // If file is corrupted, start fresh
       this.config = {
-        version: '1.0.0',
+        version: "1.0.0",
         lastUpdated: new Date().toISOString(),
         workspaces: {
-          items: {}
-        }
+          items: {},
+        },
       };
       this.saveConfig();
       return this.config;
@@ -127,7 +131,7 @@ export class ConfigManager {
   setDomain(domain: string, insecure?: boolean): void {
     const config = this.loadConfig();
     // Clean the domain - remove protocol and trailing slash
-    const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    const cleanDomain = domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
     config.domain = cleanDomain;
     if (insecure !== undefined) {
       config.insecure = insecure;
@@ -140,7 +144,7 @@ export class ConfigManager {
    */
   getDomain(): string {
     const config = this.loadConfig();
-    return config.domain || 'nimbletools.ai';
+    return config.domain || "nimbletools.ai";
   }
 
   /**
@@ -159,10 +163,14 @@ export class ConfigManager {
     const insecure = this.isInsecure();
 
     // Always use HTTP for localhost, or if insecure flag is set
-    if (domain.includes('localhost') || domain.includes('127.0.0.1') || insecure) {
-      return 'http';
+    if (
+      domain.includes("localhost") ||
+      domain.includes("127.0.0.1") ||
+      insecure
+    ) {
+      return "http";
     }
-    return 'https';
+    return "https";
   }
 
   /**
@@ -173,7 +181,7 @@ export class ConfigManager {
     const protocol = this.getProtocol();
 
     // For localhost, don't add api subdomain
-    if (domain.includes('localhost') || domain.includes('127.0.0.1')) {
+    if (domain.includes("localhost") || domain.includes("127.0.0.1")) {
       return `${protocol}://${domain}`;
     }
     return `${protocol}://api.${domain}`;
@@ -187,7 +195,7 @@ export class ConfigManager {
     const protocol = this.getProtocol();
 
     // For localhost, don't add mcp subdomain
-    if (domain.includes('localhost') || domain.includes('127.0.0.1')) {
+    if (domain.includes("localhost") || domain.includes("127.0.0.1")) {
       return `${protocol}://${domain}`;
     }
     return `${protocol}://mcp.${domain}`;
@@ -204,7 +212,7 @@ export class ConfigManager {
     }
 
     // Always use nimblebrain.ai for production Clerk, not derived from main domain
-    return 'clerk.nimblebrain.ai';
+    return "clerk.nimblebrain.ai";
   }
 
   /**
@@ -218,7 +226,7 @@ export class ConfigManager {
     }
 
     // Always use nimblebrain.ai for Studio API, not derived from main domain
-    return 'https://studio-api.nimblebrain.ai';
+    return "https://api.nimblebrain.ai";
   }
 
   // Authentication methods
@@ -285,7 +293,7 @@ export class ConfigManager {
     const config = this.loadConfig();
 
     // Calculate token expiration timestamp
-    const expiresAt = Date.now() + (response.expires_in * 1000);
+    const expiresAt = Date.now() + response.expires_in * 1000;
 
     const workspace: LocalWorkspace = {
       workspace_id: response.workspace_id,
@@ -294,7 +302,7 @@ export class ConfigManager {
       token_type: response.token_type,
       expires_at: expiresAt,
       scope: response.scope,
-      ...(response.jti && { jti: response.jti })
+      ...(response.jti && { jti: response.jti }),
     };
 
     config.workspaces.items[response.workspace_id] = workspace;
@@ -310,10 +318,10 @@ export class ConfigManager {
     const workspace: LocalWorkspace = {
       workspace_id: workspaceId,
       workspace_name: workspaceName,
-      access_token: 'no-token',
-      token_type: 'none',
-      expires_at: Date.now() + (365 * 24 * 60 * 60 * 1000), // 1 year from now
-      scope: ['none']
+      access_token: "no-token",
+      token_type: "none",
+      expires_at: Date.now() + 365 * 24 * 60 * 60 * 1000, // 1 year from now
+      scope: ["none"],
     };
 
     config.workspaces.items[workspaceId] = workspace;
@@ -347,7 +355,7 @@ export class ConfigManager {
     }
 
     // Clear isActive flag from all workspaces
-    Object.values(config.workspaces.items).forEach(ws => {
+    Object.values(config.workspaces.items).forEach((ws) => {
       ws.isActive = false;
     });
 
@@ -393,22 +401,31 @@ export class ConfigManager {
    */
   getWorkspaceByName(workspaceName: string): LocalWorkspace | null {
     const config = this.loadConfig();
-    return Object.values(config.workspaces.items).find(
-      ws => ws.workspace_name === workspaceName
-    ) || null;
+    return (
+      Object.values(config.workspaces.items).find(
+        (ws) => ws.workspace_name === workspaceName
+      ) || null
+    );
   }
 
   /**
    * Update workspace token
    */
-  updateWorkspaceToken(workspaceId: string, accessToken: string, tokenType: string, expiresIn: number, scope: string[], jti?: string): boolean {
+  updateWorkspaceToken(
+    workspaceId: string,
+    accessToken: string,
+    tokenType: string,
+    expiresIn: number,
+    scope: string[],
+    jti?: string
+  ): boolean {
     const config = this.loadConfig();
 
     if (!config.workspaces.items[workspaceId]) {
       return false;
     }
 
-    const expiresAt = Date.now() + (expiresIn * 1000);
+    const expiresAt = Date.now() + expiresIn * 1000;
 
     config.workspaces.items[workspaceId].access_token = accessToken;
     config.workspaces.items[workspaceId].token_type = tokenType;
@@ -428,13 +445,17 @@ export class ConfigManager {
     const config = this.loadConfig();
     const workspace = config.workspaces.items[workspaceId];
 
-    if (!workspace || !workspace.access_token || workspace.access_token === 'no-token') {
+    if (
+      !workspace ||
+      !workspace.access_token ||
+      workspace.access_token === "no-token"
+    ) {
       return false;
     }
 
     // Check if token is expired (with 5 minute buffer)
     const bufferMs = 5 * 60 * 1000; // 5 minutes
-    return workspace.expires_at > (Date.now() + bufferMs);
+    return workspace.expires_at > Date.now() + bufferMs;
   }
 
   /**
@@ -452,21 +473,29 @@ export class ConfigManager {
   /**
    * Get workspace token expiration info
    */
-  getTokenExpirationInfo(workspaceId: string): { expiresAt: Date; isExpired: boolean; minutesRemaining: number } | null {
+  getTokenExpirationInfo(
+    workspaceId: string
+  ): { expiresAt: Date; isExpired: boolean; minutesRemaining: number } | null {
     const workspace = this.getWorkspace(workspaceId);
-    if (!workspace || !workspace.access_token || workspace.access_token === 'no-token') {
+    if (
+      !workspace ||
+      !workspace.access_token ||
+      workspace.access_token === "no-token"
+    ) {
       return null;
     }
 
     const expiresAt = new Date(workspace.expires_at);
     const now = new Date();
     const isExpired = expiresAt.getTime() <= now.getTime();
-    const minutesRemaining = Math.floor((expiresAt.getTime() - now.getTime()) / (1000 * 60));
+    const minutesRemaining = Math.floor(
+      (expiresAt.getTime() - now.getTime()) / (1000 * 60)
+    );
 
     return {
       expiresAt,
       isExpired,
-      minutesRemaining: Math.max(0, minutesRemaining)
+      minutesRemaining: Math.max(0, minutesRemaining),
     };
   }
 
@@ -491,7 +520,9 @@ export class ConfigManager {
    */
   getWorkspaceNames(): string[] {
     const config = this.loadConfig();
-    return Object.values(config.workspaces.items).map(ws => ws.workspace_name);
+    return Object.values(config.workspaces.items).map(
+      (ws) => ws.workspace_name
+    );
   }
 
   /**
@@ -509,7 +540,7 @@ export class ConfigManager {
     const config = this.loadConfig();
 
     // Clear isActive flag from all workspaces
-    Object.values(config.workspaces.items).forEach(ws => {
+    Object.values(config.workspaces.items).forEach((ws) => {
       ws.isActive = false;
     });
 
