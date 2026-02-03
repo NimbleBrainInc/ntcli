@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.4] - 2026-02-02
+
+### Fixed
+- Update GitHub repository URLs from nimbletools org to NimbleBrainInc org
+
+## [0.4.3] - 2026-02-02
+
+### Fixed
+- Update Studio API URL to api.nimblebrain.ai
+
 ## [0.4.2] - 2025-12-29
 
 ### Fixed
