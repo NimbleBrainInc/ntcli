@@ -50,7 +50,7 @@ npm install -g @nimbletools/ntcli
 ### From Source
 
 ```bash
-git clone https://github.com/nimbletools/ntcli.git
+git clone https://github.com/NimbleBrainInc/ntcli.git
 cd ntcli
 npm install
 npm run build
@@ -432,7 +432,7 @@ See [DEVELOPMENT.md](DEVELOPMENT.md) for development setup, testing commands, an
 
 ```bash
 # Quick development setup
-git clone https://github.com/nimbletools/ntcli.git
+git clone https://github.com/NimbleBrainInc/ntcli.git
 cd ntcli
 npm install
 npm run build
@@ -449,7 +449,7 @@ Apache 2.0 - see [LICENSE](LICENSE) for details.
 ## Support
 
 - 📖 **Documentation**: [docs.nimblebrain.ai](https://docs.nimblebrain.ai/runtime/introduction) | [QUICKSTART.md](QUICKSTART.md) | [DEVELOPMENT.md](DEVELOPMENT.md)
-- 🐛 **Issues**: [GitHub Issues](https://github.com/nimbletools/ntcli/issues)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/NimbleBrainInc/ntcli/issues)
 - 🌐 **Website**: [nimbletools.ai](https://www.nimbletools.ai)
 
 Join our [Discord community](https://www.nimbletools.ai/discord?utm_source=github&utm_medium=readme&utm_campaign=ntcli&utm_content=bottom) to connect with other contributors and maintainers.

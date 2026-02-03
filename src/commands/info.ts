@@ -29,7 +29,7 @@ export async function handleInfo(options: { discord?: boolean; docs?: boolean; v
     // Platform links
     console.log(chalk.blue.bold('🌐 Links'));
     console.log(`  ${chalk.gray('Documentation:')} ${chalk.cyan('https://docs.nimblebrain.ai/runtime/introduction')}`);
-    console.log(`  ${chalk.gray('GitHub:')} ${chalk.cyan('https://github.com/nimbletools/ntcli')}`);
+    console.log(`  ${chalk.gray('GitHub:')} ${chalk.cyan('https://github.com/NimbleBrainInc/ntcli')}`);
     console.log(`  ${chalk.gray('Discord Community:')} ${chalk.cyan('https://www.nimbletools.ai/discord')}`);
     console.log(`  ${chalk.gray('Website:')} ${chalk.cyan('https://nimbletools.ai')}`);
 

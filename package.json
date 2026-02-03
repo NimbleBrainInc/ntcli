@@ -13,11 +13,11 @@
   ],
   "homepage": "https://www.nimbletools.ai",
   "bugs": {
-    "url": "https://github.com/nimbletools/ntcli/issues"
+    "url": "https://github.com/NimbleBrainInc/ntcli/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nimbletools/ntcli.git"
+    "url": "git+https://github.com/NimbleBrainInc/ntcli.git"
   },
   "license": "Apache-2.0",
   "author": {
